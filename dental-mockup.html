@@ -353,27 +353,44 @@
     .photo-overlay, #clinical-photos-empty, #xray-empty,
     #clinical-photos-grid button, #xray-grid button { display: none !important; }
 
-    /* photo grids */
+    /* photo grids — 3 per row, fixed height so all fit */
     #clinical-photos-grid {
       display: grid !important;
       grid-template-columns: repeat(3, 1fr) !important;
-      gap: 8px !important;
+      gap: 6px !important;
     }
-    #clinical-photos-grid > div { break-inside: avoid; }
-    #clinical-photos-grid img { width: 100% !important; height: auto !important; border-radius: 6px; }
+    #clinical-photos-grid > div {
+      overflow: hidden !important;
+      height: 110px !important;
+      aspect-ratio: unset !important;
+      border-radius: 6px;
+      position: relative !important;
+    }
+    #clinical-photos-grid img {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      display: block !important;
+    }
 
     #xray-grid {
       display: grid !important;
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 8px !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 6px !important;
     }
     .xray-item {
       background: #1a1a2e !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      break-inside: avoid;
+      overflow: hidden !important;
+      height: 110px !important;
+      border-radius: 6px !important;
+      position: relative !important;
     }
-    .xray-item img { width: 100% !important; height: auto !important; }
+    .xray-item img {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+      display: block !important;
+    }
 
     /* kill ALL overflow/height clipping */
     *, *::before, *::after {
