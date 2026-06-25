@@ -713,7 +713,8 @@
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <select class="status-select" id="txType" onchange="updateTxType(this)">
-            <option value="veneer" selected>Veneer</option>
+            <option value="">— ประเภท —</option>
+            <option value="veneer">Veneer</option>
             <option value="filling">Filling</option>
             <option value="crown">Crown</option>
             <option value="inlay">Inlay</option>
@@ -1329,7 +1330,7 @@ async function openCase(id, tab) {
   const statusSel = document.getElementById('caseStatus');
   const txSel = document.getElementById('txType');
   if (statusSel) { statusSel.value = p.status || 'charting'; updateStatus(statusSel); }
-  if (txSel && p.tx_type) { txSel.value = p.tx_type; updateTxType(txSel); }
+  if (txSel) { txSel.value = p.tx_type || ''; updateTxType(txSel); }
 
   // load related
   loadTreatmentPlan(id);
@@ -2301,10 +2302,13 @@ const txColors = {
   fmr:     { color:'#FF5757', bg:'#FFF0F0', border:'#FFBCBC' },
 };
 function updateTxType(sel) {
-  const c = txColors[sel.value] || txColors.veneer;
+  const c = txColors[sel.value] || { color:'var(--gray-500)', bg:'white', border:'var(--gray-200)' };
   sel.style.color = c.color;
   sel.style.background = c.bg;
   sel.style.borderColor = c.border;
+  if (currentPatientId) {
+    db.from('patients').update({ tx_type: sel.value || null }).eq('id', currentPatientId);
+  }
 }
 
 // ===== EXPORT PDF =====
