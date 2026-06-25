@@ -443,7 +443,7 @@
       <div class="user-avatar" id="sidebarAvatar">กฟ</div>
       <div class="user-info">
         <div class="name" id="sidebarName">Gift</div>
-        <div class="role">Resident, SWU</div>
+        <div class="role">Dent SWU</div>
       </div>
     </div>
     <div style="padding: 0 10px 12px">
@@ -461,184 +461,65 @@
       <div class="page-header">
         <div>
           <div class="page-title">Dashboard</div>
-          <div class="page-subtitle">16–22 มิ.ย. 2026 / 12 cases</div>
+          <div class="page-subtitle" id="dash-subtitle">กำลังโหลด...</div>
         </div>
         <button class="btn btn-primary" onclick="openAddModal()">＋ เพิ่มเคสใหม่</button>
       </div>
 
       <!-- STATS -->
       <div class="stats-row">
-        <div class="stat-card" style="position:relative;cursor:default" onmouseenter="showStatTip(this,'charting')" onmouseleave="hideStatTip()">
+        <div class="stat-card">
           <div class="stat-label">Charting</div>
-          <div class="stat-value" style="color:var(--gray-600)">3</div>
+          <div class="stat-value" id="stat-charting" style="color:var(--gray-600)">—</div>
         </div>
-        <div class="stat-card" style="position:relative;cursor:default" onmouseenter="showStatTip(this,'treatment')" onmouseleave="hideStatTip()">
+        <div class="stat-card">
           <div class="stat-label">Treatment</div>
-          <div class="stat-value" style="color:var(--blue)">4</div>
+          <div class="stat-value" id="stat-treatment" style="color:var(--blue)">—</div>
         </div>
-        <div class="stat-card" style="position:relative;cursor:default" onmouseenter="showStatTip(this,'lab')" onmouseleave="hideStatTip()">
+        <div class="stat-card">
           <div class="stat-label">Lab work</div>
-          <div class="stat-value" style="color:var(--yellow)">2</div>
+          <div class="stat-value" id="stat-lab" style="color:var(--yellow)">—</div>
         </div>
-        <div class="stat-card" style="position:relative;cursor:default" onmouseenter="showStatTip(this,'done')" onmouseleave="hideStatTip()">
+        <div class="stat-card">
           <div class="stat-label">Done</div>
-          <div class="stat-value" style="color:var(--green)">3</div>
+          <div class="stat-value" id="stat-done" style="color:var(--green)">—</div>
         </div>
       </div>
 
       <!-- DASHBOARD GRID -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
-        <!-- Upcoming Cases -->
+        <!-- LEFT: Upcoming -->
         <div>
           <div style="font-size:15px;font-weight:700;margin-bottom:14px">📅 Upcoming Cases</div>
-          <div class="upcoming-list">
-            <div class="upcoming-item" onclick="openCase('001','txplan')">
-              <div class="upcoming-item-row">
-                <div class="upcoming-date"><div class="day">18</div><div class="month">มิ.ย.</div></div>
-                <div class="upcoming-divider"></div>
-                <div class="upcoming-info">
-                  <div class="upcoming-name">พิมพ์ชนก วัฒนา <span style="font-size:11px;font-weight:500;color:var(--gray-400)">· Visit 4</span></div>
-                  <div class="upcoming-detail">10:00 — Veneer prep #11, 12, 21, 22</div>
-                </div>
-                <span class="upcoming-case">case-001</span>
-              </div>
-              <div class="upcoming-note">
-                <span class="upcoming-note-label">Note</span>
-                <span class="upcoming-note-text">เตรียม shade guide · เช็ค provisional ก่อนเริ่ม · redo enamel reduction 0.4mm</span>
-              </div>
-            </div>
-            <div class="upcoming-item" onclick="openCase('003','txplan')">
-              <div class="upcoming-item-row">
-                <div class="upcoming-date"><div class="day">19</div><div class="month">มิ.ย.</div></div>
-                <div class="upcoming-divider"></div>
-                <div class="upcoming-info">
-                  <div class="upcoming-name">ณัฐวุฒิ สมบัติ <span style="font-size:11px;font-weight:500;color:var(--gray-400)">· Visit 5</span></div>
-                  <div class="upcoming-detail">13:30 — Try-in ceramic veneer</div>
-                </div>
-                <span class="upcoming-case">case-003</span>
-              </div>
-              <div class="upcoming-note">
-                <span class="upcoming-note-label">Note</span>
-                <span class="upcoming-note-text">รับงานจาก lab ก่อน · เตรียม try-in paste + RelyX Veneer cement</span>
-              </div>
-            </div>
-            <div class="upcoming-item" onclick="openCase('005','txplan')">
-              <div class="upcoming-item-row">
-                <div class="upcoming-date"><div class="day">20</div><div class="month">มิ.ย.</div></div>
-                <div class="upcoming-divider"></div>
-                <div class="upcoming-info">
-                  <div class="upcoming-name">สุธีรา จิตรดี <span style="font-size:11px;font-weight:500;color:var(--gray-400)">· Visit 1</span></div>
-                  <div class="upcoming-detail">09:00 — Charting + impression</div>
-                </div>
-                <span class="upcoming-case">case-005</span>
-              </div>
-              <div class="upcoming-note">
-                <span class="upcoming-note-label">Note</span>
-                <span class="upcoming-note-text">เตรียม consent form · ถ่าย x-ray periapical #14, 15</span>
-              </div>
-            </div>
-            <div class="upcoming-item" onclick="openCase('007','txplan')">
-              <div class="upcoming-item-row">
-                <div class="upcoming-date"><div class="day">22</div><div class="month">มิ.ย.</div></div>
-                <div class="upcoming-divider"></div>
-                <div class="upcoming-info">
-                  <div class="upcoming-name">ภัทรวดี แสงทอง <span style="font-size:11px;font-weight:500;color:var(--gray-400)">· Visit 2</span></div>
-                  <div class="upcoming-detail">14:00 — Composite bonding #13</div>
-                </div>
-                <span class="upcoming-case">case-007</span>
-              </div>
-              <div class="upcoming-note">
-                <span class="upcoming-note-label">Note</span>
-                <span class="upcoming-note-text">เตรียม shade A2 composite · เช็ค mock-up รูปก่อน</span>
-              </div>
-            </div>
+          <div class="upcoming-list" id="upcoming-list">
+            <div style="text-align:center;padding:32px;color:var(--gray-400)">กำลังโหลด...</div>
           </div>
         </div>
 
-        <!-- คอลัมน์ขวา: ทั้งหมด -->
+        <!-- RIGHT: stats -->
         <div style="display:flex;flex-direction:column;gap:20px">
           <div>
             <div style="font-size:15px;font-weight:700;margin-bottom:14px">📋 Requirement</div>
-            <div style="background:white;border:1px solid var(--gray-200);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px">
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="tx-badge tx-veneer" style="min-width:58px;text-align:center;font-size:11px">Veneer</span>
-                <div style="flex:1;background:var(--gray-100);border-radius:99px;height:7px;overflow:hidden">
-                  <div style="width:58%;height:100%;background:var(--blue);border-radius:99px"></div>
-                </div>
-                <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);min-width:18px;text-align:right">7</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="tx-badge tx-crown" style="min-width:58px;text-align:center;font-size:11px">Crown</span>
-                <div style="flex:1;background:var(--gray-100);border-radius:99px;height:7px;overflow:hidden">
-                  <div style="width:25%;height:100%;background:#EA580C;border-radius:99px"></div>
-                </div>
-                <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);min-width:18px;text-align:right">3</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="tx-badge tx-inlay" style="min-width:58px;text-align:center;font-size:11px">Inlay</span>
-                <div style="flex:1;background:var(--gray-100);border-radius:99px;height:7px;overflow:hidden">
-                  <div style="width:8%;height:100%;background:#0891B2;border-radius:99px"></div>
-                </div>
-                <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);min-width:18px;text-align:right">1</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="tx-badge tx-filling" style="min-width:58px;text-align:center;font-size:11px">Filling</span>
-                <div style="flex:1;background:var(--gray-100);border-radius:99px;height:7px;overflow:hidden">
-                  <div style="width:8%;height:100%;background:var(--green);border-radius:99px"></div>
-                </div>
-                <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);min-width:18px;text-align:right">1</span>
-              </div>
+            <div id="requirement-list" style="background:white;border:1px solid var(--gray-200);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px">
+              <div style="color:var(--gray-400);font-size:13px">กำลังโหลด...</div>
             </div>
           </div>
           <div>
             <div style="font-size:15px;font-weight:700;margin-bottom:14px">📵 ไม่มีนัดต่อ</div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div style="background:white;border:1px solid #FED7AA;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('006','record')">
-                <div>
-                  <div style="font-weight:600;font-size:13.5px">อัจฉรา ทวีสุข</div>
-                  <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">Treatment · Veneer · 3 มิ.ย.</div>
-                </div>
-                <span style="font-size:10.5px;font-weight:600;color:#EA580C;background:#FFF7ED;padding:2px 7px;border-radius:20px;white-space:nowrap">ไม่มีนัด</span>
-              </div>
-              <div style="background:white;border:1px solid #FED7AA;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('009','record')">
-                <div>
-                  <div style="font-weight:600;font-size:13.5px">ปิยะ อนันต์</div>
-                  <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">Charting · Crown · 1 มิ.ย.</div>
-                </div>
-                <span style="font-size:10.5px;font-weight:600;color:#EA580C;background:#FFF7ED;padding:2px 7px;border-radius:20px;white-space:nowrap">ไม่มีนัด</span>
-              </div>
+            <div id="no-appt-list" style="display:flex;flex-direction:column;gap:8px">
+              <div style="color:var(--gray-400);font-size:13px">กำลังโหลด...</div>
             </div>
           </div>
           <div>
             <div style="font-size:15px;font-weight:700;margin-bottom:14px">🔀 Refer ค้างอยู่</div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div style="background:white;border:1px solid #E9D5FF;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('002','txplan')">
-                <div>
-                  <div style="font-weight:600;font-size:13.5px">ธนพัฒน์ ศรีอ่อน</div>
-                  <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">Perio scaling ก่อนเริ่ม</div>
-                </div>
-                <span style="font-size:10.5px;font-weight:600;color:#A21CAF;background:#FDF4FF;padding:2px 7px;border-radius:20px;white-space:nowrap">ค้างอยู่</span>
-              </div>
-              <div style="background:white;border:1px solid #E9D5FF;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('008','txplan')">
-                <div>
-                  <div style="font-weight:600;font-size:13.5px">มนต์ชัย วงษ์ดี</div>
-                  <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">Ortho consult</div>
-                </div>
-                <span style="font-size:10.5px;font-weight:600;color:#A21CAF;background:#FDF4FF;padding:2px 7px;border-radius:20px;white-space:nowrap">ค้างอยู่</span>
-              </div>
+            <div id="refer-list" style="display:flex;flex-direction:column;gap:8px">
+              <div style="color:var(--gray-400);font-size:13px">กำลังโหลด...</div>
             </div>
           </div>
           <div>
             <div style="font-size:15px;font-weight:700;margin-bottom:14px">⏰ งาน Lab ยังไม่มา</div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div style="background:white;border:1px solid #FCA5A5;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('002','lab')">
-                <div>
-                  <div style="font-weight:600;font-size:13.5px">ธนพัฒน์ ศรีอ่อน</div>
-                  <div style="font-size:11.5px;color:var(--gray-400);margin-top:1px">Smile Lab Bangkok</div>
-                  <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">ส่ง 5 มิ.ย. · ผ่านมา <span style="color:var(--red);font-weight:700">14 วัน</span></div>
-                </div>
-                <span style="font-size:10.5px;font-weight:600;color:var(--red);background:var(--red-light);padding:2px 7px;border-radius:20px;white-space:nowrap">เกิน</span>
-              </div>
+            <div id="lab-pending-list" style="display:flex;flex-direction:column;gap:8px">
+              <div style="color:var(--gray-400);font-size:13px">กำลังโหลด...</div>
             </div>
           </div>
         </div>
@@ -762,6 +643,7 @@
               <div class="grid-2">
                 <div class="field-group"><div class="field-label">ชื่อ-นามสกุล</div><input class="inline-input highlight" data-table="patients" data-field="full_name"></div>
                 <div class="field-group"><div class="field-label">ชื่อเล่น</div><input class="inline-input" data-table="patients" data-field="nickname"></div>
+                <div class="field-group"><div class="field-label">รหัสคนไข้</div><input class="inline-input" data-table="patients" data-field="patient_code" placeholder="เช่น 67-001"></div>
                 <div class="field-group"><div class="field-label">อายุ</div><input class="inline-input" data-table="patients" data-field="age" type="number"></div>
                 <div class="field-group"><div class="field-label">เบอร์โทร</div><input class="inline-input" data-table="patients" data-field="phone"></div>
                 <div class="field-group"><div class="field-label">LINE ID</div><input class="inline-input" data-table="patients" data-field="line_id"></div>
@@ -839,22 +721,15 @@
         <div class="section-block" style="margin-bottom:16px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
             <div class="section-title" style="margin-bottom:0">Clinical Photos</div>
-            <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px">＋ เพิ่มรูป</button>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div>
-              <div style="font-size:11px;font-weight:600;color:var(--gray-400);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Extra-oral</div>
-              <div style="aspect-ratio:4/3;background:var(--gray-100);border-radius:8px;border:1.5px dashed var(--gray-300);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:border-color .15s" onmouseenter="this.style.borderColor='var(--blue)'" onmouseleave="this.style.borderColor='#D1D5DB'">
-                <span style="font-size:26px">📷</span>
-                <span style="font-size:11.5px;color:var(--gray-400)">อัพโหลดรูป</span>
-              </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost" style="padding:5px 10px;font-size:12px" onclick="triggerClinicalPhoto('extra_oral')">＋ Extra-oral</button>
+              <button class="btn btn-ghost" style="padding:5px 10px;font-size:12px" onclick="triggerClinicalPhoto('intraoral')">＋ Intraoral</button>
             </div>
-            <div>
-              <div style="font-size:11px;font-weight:600;color:var(--gray-400);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Intraoral</div>
-              <div style="aspect-ratio:4/3;background:var(--gray-100);border-radius:8px;border:1.5px dashed var(--gray-300);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:border-color .15s" onmouseenter="this.style.borderColor='var(--blue)'" onmouseleave="this.style.borderColor='#D1D5DB'">
-                <span style="font-size:26px">🦷</span>
-                <span style="font-size:11.5px;color:var(--gray-400)">อัพโหลดรูป</span>
-              </div>
+          </div>
+          <input type="file" id="clinicalPhotoInput" accept="image/*" multiple style="display:none" onchange="handleClinicalPhotos(this)">
+          <div id="clinical-photos-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <div id="clinical-photos-empty" style="grid-column:1/-1;aspect-ratio:4/3;background:var(--gray-50);border-radius:8px;border:1.5px dashed var(--gray-200);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--gray-400)">
+              <span style="font-size:24px">📷</span><span style="font-size:12px">กด + เพื่อเพิ่มรูป</span>
             </div>
           </div>
         </div>
@@ -863,11 +738,13 @@
         <div class="section-block" style="margin-bottom:16px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
             <div class="section-title" style="margin-bottom:0">X-Ray Films</div>
-            <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px">＋ เพิ่ม X-ray</button>
+            <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="document.getElementById('xrayInput').click()">＋ เพิ่ม X-ray</button>
           </div>
-          <div class="xray-grid">
-            <div class="xray-item"><span>🦷</span><div class="xray-label">Periapical #11</div></div>
-            <div class="xray-item"><span>🦷</span><div class="xray-label">Periapical #21</div></div>
+          <input type="file" id="xrayInput" accept="image/*" multiple style="display:none" onchange="handleXrayUpload(this)">
+          <div class="xray-grid" id="xray-grid">
+            <div id="xray-empty" style="grid-column:1/-1;aspect-ratio:4/3;background:#1a1a2e;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:rgba(255,255,255,.4);cursor:pointer" onclick="document.getElementById('xrayInput').click()">
+              <span style="font-size:24px">🦷</span><span style="font-size:12px">กด + เพื่อเพิ่ม X-ray</span>
+            </div>
           </div>
         </div>
 
@@ -1236,9 +1113,19 @@ async function openCase(id, tab) {
 
   // photo
   const photoBox = document.getElementById('patientPhotoBox');
-  if (photoBox) photoBox.innerHTML = p.photo_url
-    ? `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`
-    : '👩';
+  if (photoBox) {
+    if (p.photo_url) {
+      photoBox.innerHTML = '';
+      photoBox.style.backgroundImage = `url(${p.photo_url})`;
+      photoBox.style.backgroundSize = 'cover';
+      photoBox.style.backgroundPosition = 'center';
+      photoBox.style.fontSize = '0';
+    } else {
+      photoBox.innerHTML = '👩';
+      photoBox.style.backgroundImage = '';
+      photoBox.style.fontSize = '';
+    }
+  }
 
   // allergy banner
   const banner = document.querySelector('.allergy-banner');
@@ -1265,6 +1152,7 @@ async function openCase(id, tab) {
   loadMaterials(id);
   loadLabWork(id);
   loadVisits(id);
+  loadClinicalPhotos(id);
 }
 
 // ─── RELATED DATA ───
@@ -1413,6 +1301,122 @@ updateStatus = async function(sel) {
   if (currentPatientId) await db.from('patients').update({ status: sel.value }).eq('id', currentPatientId);
 };
 
+// ─── DASHBOARD ───
+async function loadDashboard() {
+  const today = new Date().toISOString().split('T')[0];
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const fmt = s => { if (!s) return '—'; const d=new Date(s); return `${d.getDate()} ${months[d.getMonth()]}`; };
+  const emptyCard = (msg) => `<div style="text-align:center;padding:14px;color:var(--gray-400);background:white;border-radius:var(--radius);border:1px solid var(--gray-200);font-size:13px">${msg}</div>`;
+
+  // 1. All patients
+  const { data: patients } = await db.from('patients').select('*').order('created_at', { ascending: false });
+  if (!patients) return;
+
+  // Stats
+  const counts = { charting:0, treatment:0, lab:0, done:0 };
+  const txCounts = {};
+  patients.forEach(p => {
+    if (counts[p.status] !== undefined) counts[p.status]++;
+    if (p.tx_type) txCounts[p.tx_type] = (txCounts[p.tx_type]||0) + 1;
+  });
+  document.getElementById('stat-charting').textContent = counts.charting;
+  document.getElementById('stat-treatment').textContent = counts.treatment;
+  document.getElementById('stat-lab').textContent = counts.lab;
+  document.getElementById('stat-done').textContent = counts.done;
+  document.getElementById('dash-subtitle').textContent = `ทั้งหมด ${patients.length} เคส`;
+
+  // 2. Upcoming visits
+  const { data: upcoming } = await db.from('visits')
+    .select('*, patients!inner(id, full_name, nickname, patient_code)')
+    .gte('next_visit_date', today)
+    .order('next_visit_date', { ascending: true })
+    .limit(6);
+
+  const upEl = document.getElementById('upcoming-list');
+  if (!upcoming || !upcoming.length) {
+    upEl.innerHTML = emptyCard('ยังไม่มีนัดที่กำลังจะมาถึง');
+  } else {
+    upEl.innerHTML = upcoming.map(v => {
+      const p = v.patients;
+      const d = new Date(v.next_visit_date);
+      return `<div class="upcoming-item" onclick="openCase('${p.id}','record')">
+        <div class="upcoming-item-row">
+          <div class="upcoming-date"><div class="day">${d.getDate()}</div><div class="month">${months[d.getMonth()]}</div></div>
+          <div class="upcoming-divider"></div>
+          <div class="upcoming-info">
+            <div class="upcoming-name">${p.full_name||'—'}${p.nickname?` <span style="font-size:11px;font-weight:500;color:var(--gray-400)">· ${p.nickname}</span>`:''}</div>
+            <div class="upcoming-detail">${v.next_visit_detail||v.treatment||'—'}</div>
+          </div>
+          ${p.patient_code?`<span class="upcoming-case">${p.patient_code}</span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // 3. Requirement chart
+  const txOrder = ['veneer','crown','inlay','onlay','overlay','filling','fmr'];
+  const txColors = {veneer:'var(--blue)',crown:'#EA580C',inlay:'#0891B2',onlay:'#A21CAF',overlay:'#4F46E5',filling:'var(--green)',fmr:'var(--red)'};
+  const txLabels = {veneer:'Veneer',crown:'Crown',inlay:'Inlay',onlay:'Onlay',overlay:'Overlay',filling:'Filling',fmr:'FMR'};
+  const activeTx = txOrder.filter(t => txCounts[t]);
+  const maxCount = activeTx.length ? Math.max(...activeTx.map(t => txCounts[t])) : 1;
+  document.getElementById('requirement-list').innerHTML = activeTx.length
+    ? activeTx.map(t => `<div style="display:flex;align-items:center;gap:8px">
+        <span class="tx-badge tx-${t}" style="min-width:58px;text-align:center;font-size:11px">${txLabels[t]}</span>
+        <div style="flex:1;background:var(--gray-100);border-radius:99px;height:7px;overflow:hidden">
+          <div style="width:${Math.round(txCounts[t]/maxCount*100)}%;height:100%;background:${txColors[t]};border-radius:99px"></div>
+        </div>
+        <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);min-width:18px;text-align:right">${txCounts[t]}</span>
+      </div>`).join('')
+    : '<div style="color:var(--gray-400);font-size:13px">ยังไม่มีข้อมูล</div>';
+
+  // 4. No appointment (non-done patients not in upcoming list)
+  const upIds = new Set((upcoming||[]).map(v => v.patients.id));
+  const noAppt = patients.filter(p => p.status !== 'done' && !upIds.has(p.id));
+  document.getElementById('no-appt-list').innerHTML = noAppt.length
+    ? noAppt.map(p => `<div style="background:white;border:1px solid #FED7AA;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('${p.id}','record')">
+        <div>
+          <div style="font-weight:600;font-size:13.5px">${p.full_name||'—'}</div>
+          <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">${p.status||''} · ${p.tx_type||'—'}</div>
+        </div>
+        <span style="font-size:10.5px;font-weight:600;color:#EA580C;background:#FFF7ED;padding:2px 7px;border-radius:20px;white-space:nowrap">ไม่มีนัด</span>
+      </div>`).join('')
+    : emptyCard('ทุกเคสมีนัดแล้ว ✓');
+
+  // 5. Refer pending
+  const { data: refers } = await db.from('treatment_plans')
+    .select('*, patients!inner(id, full_name)')
+    .eq('refer_done', false)
+    .not('refer_detail', 'is', null);
+  document.getElementById('refer-list').innerHTML = refers && refers.length
+    ? refers.map(r => `<div style="background:white;border:1px solid #E9D5FF;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('${r.patients.id}','txplan')">
+        <div>
+          <div style="font-weight:600;font-size:13.5px">${r.patients.full_name||'—'}</div>
+          <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">${r.refer_detail||''}</div>
+        </div>
+        <span style="font-size:10.5px;font-weight:600;color:#A21CAF;background:#FDF4FF;padding:2px 7px;border-radius:20px;white-space:nowrap">ค้างอยู่</span>
+      </div>`).join('')
+    : emptyCard('ไม่มี refer ค้างอยู่ ✓');
+
+  // 6. Lab pending
+  const { data: labs } = await db.from('lab_work')
+    .select('*, patients!inner(id, full_name)')
+    .eq('received', false)
+    .not('sent_date', 'is', null);
+  document.getElementById('lab-pending-list').innerHTML = labs && labs.length
+    ? labs.map(l => {
+        const days = l.sent_date ? Math.floor((new Date()-new Date(l.sent_date))/86400000) : null;
+        return `<div style="background:white;border:1px solid #FCA5A5;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('${l.patients.id}','lab')">
+          <div>
+            <div style="font-weight:600;font-size:13.5px">${l.patients.full_name||'—'}</div>
+            <div style="font-size:11.5px;color:var(--gray-400);margin-top:1px">${l.lab_name||''}</div>
+            <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">ส่ง ${fmt(l.sent_date)}${days!==null?` · ผ่านมา <span style="color:var(--red);font-weight:700">${days} วัน</span>`:''}</div>
+          </div>
+          <span style="font-size:10.5px;font-weight:600;color:var(--red);background:var(--red-light);padding:2px 7px;border-radius:20px;white-space:nowrap">${days>14?'เกิน':'รอ'}</span>
+        </div>`;
+      }).join('')
+    : emptyCard('ไม่มีงาน lab ค้างอยู่ ✓');
+}
+
 // ─── AUTH ───
 async function signIn() {
   const email = document.getElementById('loginEmail').value.trim();
@@ -1459,6 +1463,7 @@ db.auth.onAuthStateChange((event, session) => {
   if (session?.user) {
     showApp(session.user);
     loadPatients();
+    loadDashboard();
   } else {
     showLogin();
   }
@@ -1468,22 +1473,172 @@ db.auth.onAuthStateChange((event, session) => {
 async function handlePhotoUpload(input) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
-  // Show local preview immediately
+  const box = document.getElementById('patientPhotoBox');
+  // Show preview immediately via FileReader
   const reader = new FileReader();
-  reader.onload = e => {
-    const box = document.getElementById('patientPhotoBox');
-    box.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+  reader.onload = () => {
+    box.innerHTML = '';
+    box.style.backgroundImage = `url(${reader.result})`;
+    box.style.backgroundSize = 'cover';
+    box.style.backgroundPosition = 'center';
+    box.style.fontSize = '0';
   };
   reader.readAsDataURL(file);
   // Upload to Supabase Storage
   if (!currentPatientId) return;
   const ext = file.name.split('.').pop();
   const path = `${currentPatientId}/photo.${ext}`;
-  const { data, error } = await db.storage.from('patient-files').upload(path, file, { upsert: true });
+  const { error } = await db.storage.from('patient-files').upload(path, file, { upsert: true });
   if (!error) {
     const { data: urlData } = db.storage.from('patient-files').getPublicUrl(path);
     await db.from('patients').update({ photo_url: urlData.publicUrl }).eq('id', currentPatientId);
   }
+}
+
+// ===== CLINICAL PHOTOS =====
+let _pendingPhotoCategory = 'extra_oral';
+
+function triggerClinicalPhoto(category) {
+  _pendingPhotoCategory = category;
+  document.getElementById('clinicalPhotoInput').value = '';
+  document.getElementById('clinicalPhotoInput').click();
+}
+
+async function handleClinicalPhotos(input) {
+  if (!input.files || !input.files.length || !currentPatientId) return;
+  const category = _pendingPhotoCategory;
+  const catLabel = { extra_oral: 'Extra-oral', intraoral: 'Intraoral' };
+  for (const file of Array.from(input.files)) {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      // Show immediately
+      addClinicalPhotoToGrid(reader.result, catLabel[category] || category, null);
+      // Upload + save
+      const ts = Date.now();
+      const ext = file.name.split('.').pop();
+      const path = `${currentPatientId}/clinical/${ts}.${ext}`;
+      const { error: upErr } = await db.storage.from('patient-files').upload(path, file, { upsert: true });
+      let url = null;
+      if (!upErr) {
+        const { data: sd } = await db.storage.from('patient-files').createSignedUrl(path, 60*60*24*365);
+        url = sd?.signedUrl || null;
+      }
+      await db.from('clinical_photos').insert({
+        patient_id: currentPatientId,
+        category,
+        label: catLabel[category],
+        url: url || `data:local;${path}`
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function addClinicalPhotoToGrid(src, label, id) {
+  const empty = document.getElementById('clinical-photos-empty');
+  if (empty) empty.remove();
+  const grid = document.getElementById('clinical-photos-grid');
+  const div = document.createElement('div');
+  div.style.cssText = 'position:relative;aspect-ratio:4/3;border-radius:8px;overflow:hidden;cursor:pointer;border:1.5px solid var(--gray-200)';
+  div.innerHTML = `
+    <img src="${src}" style="width:100%;height:100%;object-fit:cover" onclick="openPhotoViewer('${src}')">
+    <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:white;font-size:10px;padding:3px 7px;font-weight:600">${label}</div>
+    ${id ? `<button onclick="deleteClinicalPhoto(this,'${id}')" style="position:absolute;top:4px;right:4px;background:rgba(255,0,0,.7);border:none;color:white;border-radius:4px;width:20px;height:20px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">✕</button>` : ''}
+  `;
+  grid.appendChild(div);
+}
+
+async function deleteClinicalPhoto(btn, id) {
+  if (!confirm('ลบรูปนี้?')) return;
+  await db.from('clinical_photos').delete().eq('id', id);
+  btn.closest('div[style]').remove();
+  if (!document.getElementById('clinical-photos-grid').children.length) {
+    loadEmptyPhotoState();
+  }
+}
+
+function loadEmptyPhotoState() {
+  const grid = document.getElementById('clinical-photos-grid');
+  grid.innerHTML = `<div id="clinical-photos-empty" style="grid-column:1/-1;aspect-ratio:4/3;background:var(--gray-50);border-radius:8px;border:1.5px dashed var(--gray-200);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--gray-400)"><span style="font-size:24px">📷</span><span style="font-size:12px">กด + เพื่อเพิ่มรูป</span></div>`;
+}
+
+async function loadClinicalPhotos(pid) {
+  const { data } = await db.from('clinical_photos').select('*').eq('patient_id', pid).order('created_at');
+  const grid = document.getElementById('clinical-photos-grid');
+  const xrayGrid = document.getElementById('xray-grid');
+  // Reset
+  grid.innerHTML = '';
+  xrayGrid.innerHTML = '';
+  const clinicalPhotos = (data || []).filter(p => p.category !== 'xray');
+  const xrays = (data || []).filter(p => p.category === 'xray');
+  if (!clinicalPhotos.length) {
+    loadEmptyPhotoState();
+  } else {
+    clinicalPhotos.forEach(p => addClinicalPhotoToGrid(p.url, p.label || p.category, p.id));
+  }
+  if (!xrays.length) {
+    xrayGrid.innerHTML = `<div id="xray-empty" style="grid-column:1/-1;aspect-ratio:4/3;background:#1a1a2e;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:rgba(255,255,255,.4);cursor:pointer" onclick="document.getElementById('xrayInput').click()"><span style="font-size:24px">🦷</span><span style="font-size:12px">กด + เพื่อเพิ่ม X-ray</span></div>`;
+  } else {
+    xrays.forEach(p => addXrayToGrid(p.url, p.label || 'X-ray', p.id));
+  }
+}
+
+// ===== X-RAY =====
+async function handleXrayUpload(input) {
+  if (!input.files || !input.files.length || !currentPatientId) return;
+  for (const file of Array.from(input.files)) {
+    const label = prompt('ชื่อ X-ray (เช่น Periapical #11)', file.name.replace(/\.[^.]+$/, '')) || file.name;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      addXrayToGrid(reader.result, label, null);
+      const ts = Date.now();
+      const ext = file.name.split('.').pop();
+      const path = `${currentPatientId}/xray/${ts}.${ext}`;
+      const { error: upErr } = await db.storage.from('patient-files').upload(path, file, { upsert: true });
+      let url = null;
+      if (!upErr) {
+        const { data: sd } = await db.storage.from('patient-files').createSignedUrl(path, 60*60*24*365);
+        url = sd?.signedUrl || null;
+      }
+      await db.from('clinical_photos').insert({
+        patient_id: currentPatientId,
+        category: 'xray',
+        label,
+        url: url || `data:local;${path}`
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function addXrayToGrid(src, label, id) {
+  const empty = document.getElementById('xray-empty');
+  if (empty) empty.remove();
+  const grid = document.getElementById('xray-grid');
+  const div = document.createElement('div');
+  div.className = 'xray-item';
+  div.style.position = 'relative';
+  div.innerHTML = `
+    <img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:6px" onclick="openPhotoViewer('${src}')">
+    <div class="xray-label">${label}</div>
+    ${id ? `<button onclick="deleteXray(this,'${id}')" style="position:absolute;top:4px;right:4px;background:rgba(255,0,0,.7);border:none;color:white;border-radius:4px;width:20px;height:20px;cursor:pointer;font-size:12px">✕</button>` : ''}
+  `;
+  grid.appendChild(div);
+}
+
+async function deleteXray(btn, id) {
+  if (!confirm('ลบ X-ray นี้?')) return;
+  await db.from('clinical_photos').delete().eq('id', id);
+  btn.closest('.xray-item').remove();
+}
+
+// ===== PHOTO VIEWER =====
+function openPhotoViewer(src) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  overlay.onclick = () => overlay.remove();
+  overlay.innerHTML = `<img src="${src}" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px">`;
+  document.body.appendChild(overlay);
 }
 
 // ===== ALLERGY SYNC =====
@@ -1561,6 +1716,7 @@ function showView(id) {
   });
   currentView = id;
   closeSidebar();
+  if (id === 'dashboard') loadDashboard();
 }
 
 
