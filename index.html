@@ -1185,7 +1185,7 @@ async function openCase(id, tab) {
   localStorage.setItem('notis_view', 'case-detail');
   localStorage.setItem('notis_patient', id);
   showView('case-detail');
-  const targetTab = tab || 'info';
+  const targetTab = tab || localStorage.getItem('notis_tab') || 'info';
   const tabEl = document.querySelector(`.tab[onclick*="'${targetTab}'"]`);
   switchTab(targetTab, tabEl || document.querySelector('.tab'));
 
@@ -1913,6 +1913,7 @@ function switchTab(name, el) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
+  localStorage.setItem('notis_tab', name);
 }
 
 // ===== MODALS =====
