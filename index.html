@@ -342,37 +342,83 @@
 
   /* PRINT */
   @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
     /* hide chrome */
     .sidebar, .back-btn, .tab-bar, #login-screen, .hamburger,
     .sidebar-overlay, #save-toast, .btn-primary, .btn-ghost,
-    .btn-danger, .status-select, .allergy-icon { display: none !important; }
+    .btn-danger, .status-select, .allergy-icon,
+    #view-case-detail > div:nth-child(3) > div:last-child,
+    .tooth-chart, input[type="file"],
+    .photo-overlay, #clinical-photos-empty, #xray-empty,
+    #clinical-photos-grid button, #xray-grid button { display: none !important; }
+
+    /* photo grids */
+    #clinical-photos-grid {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 8px !important;
+    }
+    #clinical-photos-grid > div { break-inside: avoid; }
+    #clinical-photos-grid img { width: 100% !important; height: auto !important; border-radius: 6px; }
+
+    #xray-grid {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 8px !important;
+    }
+    .xray-item {
+      background: #1a1a2e !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      break-inside: avoid;
+    }
+    .xray-item img { width: 100% !important; height: auto !important; }
+
+    /* kill ALL overflow/height clipping */
+    *, *::before, *::after {
+      overflow: visible !important;
+      max-height: none !important;
+    }
 
     /* layout */
-    .app { display: block !important; }
-    .main { overflow: visible !important; }
-    .view { display: none !important; padding: 0 !important; }
-    #view-case-detail { display: block !important; padding: 16px !important; }
+    html, body { height: auto !important; }
+    .app { display: block !important; height: auto !important; }
+    .main { overflow: visible !important; height: auto !important; }
+    .view { display: none !important; padding: 0 !important; height: auto !important; }
+    #view-case-detail { display: block !important; padding: 16px !important; height: auto !important; }
 
     /* show ONLY the active tab */
     .tab-content { display: none !important; }
-    .tab-content.active { display: block !important; }
+    .tab-content.active { display: block !important; height: auto !important; }
 
-    /* inputs look like text */
-    .inline-input, .inline-textarea, .form-input, .form-textarea {
+    /* inputs + textareas expand to full content */
+    .inline-input, .inline-textarea, .form-input, .form-textarea, textarea, input {
       border: none !important; background: transparent !important;
       box-shadow: none !important; padding-left: 0 !important;
+      height: auto !important; min-height: 0 !important;
+      resize: none !important; overflow: visible !important;
     }
+    textarea { white-space: pre-wrap !important; }
 
     /* cards */
-    .section-block { break-inside: avoid; border: 1px solid #ddd !important; margin-bottom: 12px; }
+    .section-block {
+      break-inside: avoid; border: 1px solid #ddd !important;
+      margin-bottom: 12px; padding: 14px !important;
+      height: auto !important;
+    }
     .detail-layout { grid-template-columns: 1fr !important; }
     .grid-2 { grid-template-columns: 1fr 1fr !important; }
 
+    /* photo box — show small or hide */
+    .patient-photo { width: 80px !important; height: 100px !important; font-size: 32px !important; }
+
+    /* prevent orphan sections */
+    .field-group { break-inside: avoid; }
+    .visit-card { break-inside: avoid; }
+
     /* allergy banner */
     .allergy-banner { border: 1.5px solid #FFBCBC !important; }
-
-    /* header */
-    #view-case-detail > div:nth-child(3) > div:last-child { display: none !important; }
   }
 
   /* LOGIN SCREEN */
@@ -1096,8 +1142,13 @@ async function loadPatients() {
     const txBadge = p.tx_type ? `<span class="tx-badge tx-${p.tx_type}">${p.tx_type[0].toUpperCase()+p.tx_type.slice(1)}</span>` : '<span style="color:var(--gray-400)">—</span>';
     return `<div class="case-row" data-name="${(p.full_name||'')} ${(p.nickname||'')} ${(p.patient_code||'')}" data-status="${p.status==='done'?'done':'active'}" onclick="openCase('${p.id}')">
       <div style="display:flex;align-items:center;gap:12px">
-        <div class="case-photo">👤</div>
-        <div><div class="case-name">${p.full_name||'—'}</div><div class="case-code">${p.phone||''}</div></div>
+        <div class="case-photo" style="${p.photo_url ? `background-image:url(${p.photo_url});background-size:cover;background-position:center;font-size:0` : ''}">
+          ${p.photo_url ? '' : '👤'}
+        </div>
+        <div>
+          <div class="case-name">${p.full_name||'—'}${p.nickname ? ` <span style="font-weight:400;color:var(--gray-500)">(${p.nickname})</span>` : ''}</div>
+          <div class="case-code">${p.phone||''}</div>
+        </div>
       </div>
       <div style="font-weight:600;color:var(--blue)">${p.patient_code||'—'}</div>
       <div>${txBadge}</div>
