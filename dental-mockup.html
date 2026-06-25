@@ -1080,7 +1080,7 @@
 </div>
 
 <!-- STAT TOOLTIP -->
-<div id="stat-tip" style="display:none;position:fixed;z-index:9999;background:#1e293b;color:white;border-radius:10px;padding:10px 14px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.25);min-width:160px;max-width:240px;pointer-events:none"></div>
+<div id="stat-tip" style="display:none;position:fixed;z-index:9999;background:#1e293b;color:white;border-radius:10px;padding:10px 14px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.25);min-width:160px;max-width:240px"></div>
 
 <!-- GOAL MODAL -->
 <div class="modal-backdrop" id="goalModal">
@@ -1223,8 +1223,24 @@ async function loadPatients() {
   }
   const statusClass = { charting:'badge-charting', treatment:'badge-treatment', lab:'badge-lab', done:'badge-done' };
   const statusLabel = { charting:'Charting', treatment:'Treatment', lab:'Lab work', done:'Done' };
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const fmtDate = s => { if (!s) return null; const d = new Date(s); return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`; };
+
+  // load latest next_visit_date per patient
+  const { data: visits } = await db.from('visits')
+    .select('patient_id, next_visit_date')
+    .not('next_visit_date', 'is', null)
+    .order('next_visit_date', { ascending: false });
+  const latestNV = {};
+  (visits || []).forEach(v => {
+    if (!latestNV[v.patient_id]) latestNV[v.patient_id] = v.next_visit_date;
+  });
+
   body.innerHTML = data.map(p => {
     const txBadge = p.tx_type ? `<span class="tx-badge tx-${p.tx_type}">${p.tx_type[0].toUpperCase()+p.tx_type.slice(1)}</span>` : '<span style="color:var(--gray-400)">—</span>';
+    const nv = latestNV[p.id];
+    const nvStr = nv ? fmtDate(nv) : '—';
+    const nvColor = nv && new Date(nv) < new Date() ? 'var(--red)' : 'var(--gray-500)';
     return `<div class="case-row" data-name="${(p.full_name||'')} ${(p.nickname||'')} ${(p.patient_code||'')}" data-status="${p.status==='done'?'done':'active'}" onclick="openCase('${p.id}')">
       <div style="display:flex;align-items:center;gap:12px">
         <div class="case-photo">
@@ -1238,7 +1254,7 @@ async function loadPatients() {
       <div style="font-weight:600;color:var(--blue)">${p.patient_code||'—'}</div>
       <div>${txBadge}</div>
       <div><span class="badge ${statusClass[p.status]||'badge-charting'}">${statusLabel[p.status]||'Charting'}</span></div>
-      <div style="font-size:12.5px;color:var(--gray-500)">—</div>
+      <div style="font-size:12px;color:${nvColor};font-weight:${nv?'600':'400'}">${nvStr}</div>
     </div>`;
   }).join('') + '<div id="emptyState" style="display:none;padding:48px 20px;text-align:center;color:var(--gray-400)"><div style="font-size:32px;margin-bottom:10px">🔍</div><div style="font-size:14px;font-weight:600">ไม่พบคนไข้ที่ค้นหา</div></div>';
 }
@@ -2008,26 +2024,30 @@ function showStatTip(e, status) {
   const list = (window._statPatients || {})[status] || [];
   if (!list.length) return;
   const labels = { charting:'Charting', treatment:'Treatment', lab:'Lab work', done:'Done' };
-  tip.innerHTML = `<div style="font-weight:700;margin-bottom:7px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.7">${labels[status]} (${list.length})</div>`
-    + list.map(p => `<div style="padding:3px 0;cursor:pointer;display:flex;align-items:center;gap:6px" onclick="openCase('${p.id}')">
+  tip.innerHTML = `<div style="font-weight:700;margin-bottom:7px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.6">${labels[status]} (${list.length})</div>`
+    + list.map(p => `<div onclick="hideStatTip();openCase('${p.id}')" style="padding:4px 0;cursor:pointer;display:flex;align-items:center;gap:7px;border-radius:4px">
         <span style="width:5px;height:5px;border-radius:50%;background:white;opacity:.5;flex-shrink:0;display:inline-block"></span>
-        <span>${p.name}${p.nick ? ` <span style="opacity:.6">(${p.nick})</span>` : ''}</span>
+        <span>${p.name}${p.nick ? `<span style="opacity:.55"> (${p.nick})</span>` : ''}</span>
       </div>`).join('');
+  // position before showing to get correct coords
+  const rect = e.currentTarget.getBoundingClientRect();
+  tip.style.top = '-9999px';
+  tip.style.left = '-9999px';
   tip.style.display = 'block';
-  positionTip(e, tip);
+  // now measure and reposition
+  requestAnimationFrame(() => {
+    const tipH = tip.offsetHeight;
+    const tipW = tip.offsetWidth;
+    let top = rect.bottom + 8;
+    if (top + tipH > window.innerHeight - 16) top = rect.top - tipH - 8;
+    let left = rect.left;
+    if (left + tipW > window.innerWidth - 16) left = window.innerWidth - tipW - 16;
+    tip.style.top = top + 'px';
+    tip.style.left = left + 'px';
+  });
 }
 function hideStatTip() {
   document.getElementById('stat-tip').style.display = 'none';
-}
-function positionTip(e, tip) {
-  const rect = e.currentTarget.getBoundingClientRect();
-  const tipH = tip.offsetHeight || 120;
-  let top = rect.bottom + 8;
-  if (top + tipH > window.innerHeight - 16) top = rect.top - tipH - 8;
-  let left = rect.left;
-  if (left + 240 > window.innerWidth - 16) left = window.innerWidth - 256;
-  tip.style.top = top + 'px';
-  tip.style.left = left + 'px';
 }
 
 // ===== GOAL MODAL =====
@@ -2210,31 +2230,7 @@ function buildChart() {
   document.getElementById('lower-row').innerHTML = lower.map(n => renderTooth(n)).join('');
 }
 
-// ===== STAT CARD TOOLTIP =====
-const statPatients = {
-  charting:  ['สุธีรา จิตรดี', 'ปิยะ อนันต์', 'มนต์ชัย วงษ์ดี'],
-  treatment: ['พิมพ์ชนก วัฒนา', 'ณัฐวุฒิ สมบัติ', 'กนกพร สุขใจ', 'รัตนา พงษ์ไพร'],
-  lab:       ['ธนพัฒน์ ศรีอ่อน', 'อัจฉรา ทวีสุข'],
-  done:      ['วรรณิดา ทองดี', 'ชาญณรงค์ บุญมา', 'ศิริพร เจริญ'],
-};
-let statTipEl = null;
-function showStatTip(card, stage) {
-  hideStatTip();
-  const names = statPatients[stage] || [];
-  if (!names.length) return;
-  const tip = document.createElement('div');
-  tip.id = 'stat-tip';
-  tip.style.cssText = 'position:fixed;background:#1e293b;color:#fff;font-size:12.5px;line-height:1.7;padding:10px 14px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:9999;pointer-events:none;min-width:160px;';
-  tip.innerHTML = names.map(n => `<div>• ${n}</div>`).join('');
-  document.body.appendChild(tip);
-  statTipEl = tip;
-  const r = card.getBoundingClientRect();
-  tip.style.left = r.left + 'px';
-  tip.style.top  = (r.bottom + 8) + 'px';
-}
-function hideStatTip() {
-  if (statTipEl) { statTipEl.remove(); statTipEl = null; }
-}
+// old stat tooltip removed — using showStatTip in loadDashboard section
 
 // ===== TOOTH TOOLTIP =====
 function showTip(e, num) {
