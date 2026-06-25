@@ -1388,21 +1388,22 @@ async function saveField(el) {
 async function createPatient() {
   const full_name = document.getElementById('newFullName').value.trim();
   if (!full_name) { document.getElementById('newFullName').focus(); return; }
-  const { data, error } = await db.from('patients').insert({
+  const newId = crypto.randomUUID();
+  const { error } = await db.from('patients').insert({
+    id:              newId,
     full_name,
     nickname:        document.getElementById('newNickname').value.trim() || null,
     patient_code:    document.getElementById('newPatientCode').value.trim() || null,
     age:             parseInt(document.getElementById('newAge').value) || null,
     tx_type:         document.getElementById('newTxType').value || null,
     chief_complaint: document.getElementById('newChiefComplaint').value.trim() || null,
-  }).select().single();
-  if (!error) {
-    ['newFullName','newNickname','newPatientCode','newAge','newTxType','newChiefComplaint']
-      .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    closeModal('addModal');
-    loadPatients();
-    if (data?.id) openCase(data.id);
-  } else alert('เพิ่มไม่ได้: ' + error.message);
+  });
+  if (error) { alert('เพิ่มไม่ได้: ' + error.message); return; }
+  ['newFullName','newNickname','newPatientCode','newAge','newTxType','newChiefComplaint']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  closeModal('addModal');
+  loadPatients();
+  openCase(newId);
 }
 
 // ─── CREATE VISIT ───
@@ -1569,13 +1570,6 @@ function showView(id) {
   closeSidebar();
 }
 
-function openCase(id, tab) {
-  previousView = currentView;
-  showView('case-detail');
-  const targetTab = tab || 'info';
-  const tabEl = document.querySelector(`.tab[onclick*="'${targetTab}'"]`);
-  switchTab(targetTab, tabEl || document.querySelector('.tab'));
-}
 
 function goBack() {
   showView(previousView === 'case-detail' ? 'dashboard' : previousView);
