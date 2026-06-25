@@ -188,7 +188,7 @@
   .visit-badge { background: var(--blue-light); color: var(--blue); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
   .visit-date { font-size: 12px; color: var(--gray-400); }
   .visit-treatment { font-size: 14px; font-weight: 600; color: var(--gray-800); margin-bottom: 4px; }
-  .visit-note { font-size: 13px; color: var(--gray-600); margin-bottom: 8px; }
+  .visit-note { font-size: 13px; color: var(--gray-600); margin-bottom: 8px; white-space: pre-wrap; }
   .visit-nv { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
   .visit-nv-label { color: var(--gray-400); font-weight: 600; }
   .visit-nv-val { color: var(--blue); font-weight: 600; }
@@ -407,9 +407,11 @@
     .view { display: none !important; padding: 0 !important; height: auto !important; }
     #view-case-detail { display: block !important; padding: 16px !important; height: auto !important; }
 
-    /* show ONLY the active tab */
+    /* show ONLY the active tab (or ALL tabs when print-all mode) */
     .tab-content { display: none !important; }
     .tab-content.active { display: block !important; height: auto !important; }
+    body.print-all .tab-content { display: block !important; height: auto !important; }
+    body.print-all .tab-bar { display: none !important; }
 
     /* inputs + textareas expand to full content */
     .inline-input, .inline-textarea, .form-input, .form-textarea, textarea, input {
@@ -694,7 +696,8 @@
             <option value="done">✅ Done</option>
           </select>
           <button class="btn btn-danger" onclick="deleteCase()">🗑 ลบเคส</button>
-          <button class="btn btn-ghost" onclick="window.print()">🖨 Print / PDF</button>
+          <button class="btn btn-ghost" onclick="window.print()">🖨 Print หน้านี้</button>
+          <button class="btn btn-ghost" onclick="printAll()">🖨 Print ทั้งหมด</button>
         </div>
       </div>
 
@@ -706,6 +709,7 @@
         <div class="tab" onclick="switchTab('record', this)">Treatment Record</div>
         <div class="tab" onclick="switchTab('material', this)">Material</div>
         <div class="tab" onclick="switchTab('lab', this)">Lab</div>
+        <div class="tab" onclick="switchTab('freenote', this)">📝 Note</div>
       </div>
 
       <!-- TAB: INFO -->
@@ -1026,8 +1030,20 @@
           </label>
         </div>
       </div>
-    </div>
 
+      <!-- TAB: FREE NOTE -->
+      <div class="tab-content" id="tab-freenote">
+        <div class="section-block">
+          <textarea
+            class="form-textarea"
+            data-table="patients"
+            data-field="extra_notes"
+            style="min-height:420px;resize:vertical;font-size:14px;line-height:1.7;white-space:pre-wrap"
+            placeholder="จดอะไรก็ได้ที่นี่..."></textarea>
+        </div>
+      </div>
+
+    </div>
   </main>
 </div>
 
@@ -1161,8 +1177,8 @@ async function loadPatients() {
     const txBadge = p.tx_type ? `<span class="tx-badge tx-${p.tx_type}">${p.tx_type[0].toUpperCase()+p.tx_type.slice(1)}</span>` : '<span style="color:var(--gray-400)">—</span>';
     return `<div class="case-row" data-name="${(p.full_name||'')} ${(p.nickname||'')} ${(p.patient_code||'')}" data-status="${p.status==='done'?'done':'active'}" onclick="openCase('${p.id}')">
       <div style="display:flex;align-items:center;gap:12px">
-        <div class="case-photo" style="${p.photo_url ? `background-image:url(${p.photo_url});background-size:cover;background-position:center;font-size:0` : ''}">
-          ${p.photo_url ? '' : '👤'}
+        <div class="case-photo">
+          ${p.photo_url ? `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : '👤'}
         </div>
         <div>
           <div class="case-name">${p.full_name||'—'}${p.nickname ? ` <span style="font-weight:400;color:var(--gray-500)">(${p.nickname})</span>` : ''}</div>
@@ -1908,6 +1924,12 @@ function goBack() {
 }
 
 // ===== TABS =====
+function printAll() {
+  document.body.classList.add('print-all');
+  window.print();
+  document.body.classList.remove('print-all');
+}
+
 function switchTab(name, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
