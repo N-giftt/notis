@@ -413,6 +413,35 @@
     body.print-all .tab-content { display: block !important; height: auto !important; }
     body.print-all .tab-bar { display: none !important; }
 
+    /* section dividers in print-all */
+    body.print-all .tab-content {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+    body.print-all .tab-content + .tab-content {
+      margin-top: 20px !important;
+      padding-top: 14px !important;
+      border-top: 2px solid #cbd5e1 !important;
+    }
+    body.print-all .tab-content::before {
+      content: attr(data-print-label);
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 10px;
+    }
+
+    /* tighter section-blocks in print-all so pages aren't wasted */
+    body.print-all .section-block {
+      margin-bottom: 8px !important;
+      padding: 10px 12px !important;
+    }
+    body.print-all .field-group { margin-bottom: 4px !important; }
+    body.print-all .visit-card { padding: 10px 14px !important; margin-bottom: 6px !important; }
+
     /* inputs + textareas expand to full content */
     .inline-input, .inline-textarea, .form-input, .form-textarea, textarea, input {
       border: none !important; background: transparent !important;
@@ -713,7 +742,7 @@
       </div>
 
       <!-- TAB: INFO -->
-      <div class="tab-content active" id="tab-info">
+      <div class="tab-content active" id="tab-info" data-print-label="ข้อมูลทั่วไป">
         <div class="detail-layout">
           <div>
             <div class="section-block">
@@ -773,7 +802,7 @@
       </div>
 
       <!-- TAB: CLINICAL -->
-      <div class="tab-content" id="tab-clinical">
+      <div class="tab-content" id="tab-clinical" data-print-label="ข้อมูลคลินิก">
         <div class="section-block" style="margin-bottom:16px">
           <div class="section-title">Chief Complaint</div>
           <textarea class="inline-textarea" rows="2" style="margin-top:4px" data-table="patients" data-field="chief_complaint"></textarea>
@@ -871,7 +900,7 @@
       </div>
 
       <!-- TAB: TREATMENT PLAN -->
-      <div class="tab-content" id="tab-txplan">
+      <div class="tab-content" id="tab-txplan" data-print-label="Treatment Plan">
         <div class="section-block">
           <div class="section-title" style="margin-bottom:18px">Treatment Plan</div>
           <div class="field-group">
@@ -908,7 +937,7 @@
       </div>
 
       <!-- TAB: RECORD -->
-      <div class="tab-content" id="tab-record">
+      <div class="tab-content" id="tab-record" data-print-label="Treatment Record">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div style="font-size:15px;font-weight:700">Treatment Record</div>
           <button class="btn btn-primary" onclick="openVisitModal()">＋ เพิ่ม Visit</button>
@@ -960,7 +989,7 @@
       </div>
 
       <!-- TAB: MATERIAL -->
-      <div class="tab-content" id="tab-material">
+      <div class="tab-content" id="tab-material" data-print-label="Material">
         <div class="section-block">
           <div class="section-title" style="margin-bottom:18px">Material Record</div>
           <div class="field-group">
@@ -996,7 +1025,7 @@
       </div>
 
       <!-- TAB: LAB -->
-      <div class="tab-content" id="tab-lab">
+      <div class="tab-content" id="tab-lab" data-print-label="Lab">
         <div class="section-block">
           <div class="section-title" style="margin-bottom:18px">Lab</div>
           <div class="field-group">
@@ -1032,7 +1061,7 @@
       </div>
 
       <!-- TAB: FREE NOTE -->
-      <div class="tab-content" id="tab-freenote">
+      <div class="tab-content" id="tab-freenote" data-print-label="Note">
         <div class="section-block">
           <textarea
             class="form-textarea"
