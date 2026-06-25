@@ -2351,11 +2351,20 @@ function refreshTxTrigger(selected) {
   }
 }
 
-async function onTxChange() {
-  const checked = [...document.querySelectorAll('#txTypeCheckboxes input:checked')].map(i=>i.value);
+function onTxChange() {
+  // read ALL checkboxes explicitly
+  const all = document.querySelectorAll('#txTypeCheckboxes input[type="checkbox"]');
+  const checked = [];
+  all.forEach(cb => { if (cb.checked) checked.push(cb.value); });
+  const val = checked.length ? checked.join(',') : null;
   refreshTxTrigger(checked);
   if (currentPatientId) {
-    await db.from('patients').update({ tx_type: checked.join(',') || null }).eq('id', currentPatientId);
+    db.from('patients')
+      .update({ tx_type: val })
+      .eq('id', currentPatientId)
+      .then(({ error }) => {
+        if (!error) showToast('บันทึก: ' + (val || '—'));
+      });
   }
 }
 
