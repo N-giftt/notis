@@ -342,16 +342,37 @@
 
   /* PRINT */
   @media print {
-    .sidebar, .back-btn, .btn, .tab-bar, #login-screen, .hamburger,
-    .sidebar-overlay, #save-toast { display: none !important; }
-    .app { display: block; }
-    .main { overflow: visible; }
-    .view { display: none !important; padding: 0; }
-    #view-case-detail { display: block !important; }
-    .tab-content { display: block !important; margin-bottom: 16px; }
-    .tab-content::before { content: attr(id); font-weight: 700; font-size: 13px; color: #666; text-transform: uppercase; display: block; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
-    .inline-input, .inline-textarea, .form-input, .form-textarea { border: none !important; background: transparent !important; box-shadow: none !important; }
-    .section-block { break-inside: avoid; border: 1px solid #ddd; }
+    /* hide chrome */
+    .sidebar, .back-btn, .tab-bar, #login-screen, .hamburger,
+    .sidebar-overlay, #save-toast, .btn-primary, .btn-ghost,
+    .btn-danger, .status-select, .allergy-icon { display: none !important; }
+
+    /* layout */
+    .app { display: block !important; }
+    .main { overflow: visible !important; }
+    .view { display: none !important; padding: 0 !important; }
+    #view-case-detail { display: block !important; padding: 16px !important; }
+
+    /* show ONLY the active tab */
+    .tab-content { display: none !important; }
+    .tab-content.active { display: block !important; }
+
+    /* inputs look like text */
+    .inline-input, .inline-textarea, .form-input, .form-textarea {
+      border: none !important; background: transparent !important;
+      box-shadow: none !important; padding-left: 0 !important;
+    }
+
+    /* cards */
+    .section-block { break-inside: avoid; border: 1px solid #ddd !important; margin-bottom: 12px; }
+    .detail-layout { grid-template-columns: 1fr !important; }
+    .grid-2 { grid-template-columns: 1fr 1fr !important; }
+
+    /* allergy banner */
+    .allergy-banner { border: 1.5px solid #FFBCBC !important; }
+
+    /* header */
+    #view-case-detail > div:nth-child(3) > div:last-child { display: none !important; }
   }
 
   /* LOGIN SCREEN */
@@ -1091,6 +1112,8 @@ async function openCase(id, tab) {
   currentPatientId = id;
   currentPlanId = null; currentMaterialId = null; currentLabId = null;
   previousView = currentView;
+  localStorage.setItem('notis_view', 'case-detail');
+  localStorage.setItem('notis_patient', id);
   showView('case-detail');
   const targetTab = tab || 'info';
   const tabEl = document.querySelector(`.tab[onclick*="'${targetTab}'"]`);
@@ -1463,18 +1486,34 @@ db.auth.onAuthStateChange((event, session) => {
   if (session?.user) {
     showApp(session.user);
     loadPatients();
-    loadDashboard();
+    const lastView = localStorage.getItem('notis_view');
+    const lastPatient = localStorage.getItem('notis_patient');
+    if (lastView === 'case-detail' && lastPatient) {
+      loadDashboard();
+      openCase(lastPatient);
+    } else if (lastView === 'cases') {
+      showView('cases');
+    } else {
+      loadDashboard();
+    }
   } else {
     showLogin();
   }
 });
 
-// ===== PHOTO UPLOAD =====
+// ===== STORAGE HELPER =====
+async function uploadAndGetUrl(path, file) {
+  const { error } = await db.storage.from('patient-files').upload(path, file, { upsert: true });
+  if (error) return null;
+  const { data } = await db.storage.from('patient-files').createSignedUrl(path, 315360000); // ~10 years
+  return data?.signedUrl || null;
+}
+
+// ===== PHOTO UPLOAD (profile) =====
 async function handlePhotoUpload(input) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
   const box = document.getElementById('patientPhotoBox');
-  // Show preview immediately via FileReader
   const reader = new FileReader();
   reader.onload = () => {
     box.innerHTML = '';
@@ -1484,15 +1523,10 @@ async function handlePhotoUpload(input) {
     box.style.fontSize = '0';
   };
   reader.readAsDataURL(file);
-  // Upload to Supabase Storage
   if (!currentPatientId) return;
   const ext = file.name.split('.').pop();
-  const path = `${currentPatientId}/photo.${ext}`;
-  const { error } = await db.storage.from('patient-files').upload(path, file, { upsert: true });
-  if (!error) {
-    const { data: urlData } = db.storage.from('patient-files').getPublicUrl(path);
-    await db.from('patients').update({ photo_url: urlData.publicUrl }).eq('id', currentPatientId);
-  }
+  const url = await uploadAndGetUrl(`${currentPatientId}/photo.${ext}`, file);
+  if (url) await db.from('patients').update({ photo_url: url }).eq('id', currentPatientId);
 }
 
 // ===== CLINICAL PHOTOS =====
@@ -1509,78 +1543,81 @@ async function handleClinicalPhotos(input) {
   const category = _pendingPhotoCategory;
   const catLabel = { extra_oral: 'Extra-oral', intraoral: 'Intraoral' };
   for (const file of Array.from(input.files)) {
-    const reader = new FileReader();
-    reader.onload = async () => {
-      // Show immediately
-      addClinicalPhotoToGrid(reader.result, catLabel[category] || category, null);
-      // Upload + save
-      const ts = Date.now();
-      const ext = file.name.split('.').pop();
-      const path = `${currentPatientId}/clinical/${ts}.${ext}`;
-      const { error: upErr } = await db.storage.from('patient-files').upload(path, file, { upsert: true });
-      let url = null;
-      if (!upErr) {
-        const { data: sd } = await db.storage.from('patient-files').createSignedUrl(path, 60*60*24*365);
-        url = sd?.signedUrl || null;
-      }
-      await db.from('clinical_photos').insert({
-        patient_id: currentPatientId,
-        category,
-        label: catLabel[category],
-        url: url || `data:local;${path}`
-      });
-    };
-    reader.readAsDataURL(file);
+    await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const div = addClinicalPhotoToGrid(reader.result, catLabel[category] || category, null);
+        const ts = Date.now();
+        const ext = file.name.split('.').pop();
+        const url = await uploadAndGetUrl(`${currentPatientId}/clinical/${ts}.${ext}`, file);
+        const { data: saved } = await db.from('clinical_photos').insert({
+          patient_id: currentPatientId, category, label: catLabel[category], url: url || ''
+        }).select('id').single();
+        if (saved?.id) attachDeleteBtn(div, saved.id, 'clinical');
+        resolve();
+      };
+      reader.readAsDataURL(file);
+    });
   }
 }
 
 function addClinicalPhotoToGrid(src, label, id) {
-  const empty = document.getElementById('clinical-photos-empty');
-  if (empty) empty.remove();
+  document.getElementById('clinical-photos-empty')?.remove();
   const grid = document.getElementById('clinical-photos-grid');
   const div = document.createElement('div');
-  div.style.cssText = 'position:relative;aspect-ratio:4/3;border-radius:8px;overflow:hidden;cursor:pointer;border:1.5px solid var(--gray-200)';
+  div.draggable = true;
+  div.dataset.id = id || '';
+  div.style.cssText = 'position:relative;aspect-ratio:4/3;border-radius:8px;overflow:hidden;border:1.5px solid var(--gray-200);cursor:grab';
   div.innerHTML = `
-    <img src="${src}" style="width:100%;height:100%;object-fit:cover" onclick="openPhotoViewer('${src}')">
+    <img src="${src}" style="width:100%;height:100%;object-fit:cover;pointer-events:none">
     <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:white;font-size:10px;padding:3px 7px;font-weight:600">${label}</div>
-    ${id ? `<button onclick="deleteClinicalPhoto(this,'${id}')" style="position:absolute;top:4px;right:4px;background:rgba(255,0,0,.7);border:none;color:white;border-radius:4px;width:20px;height:20px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">✕</button>` : ''}
+    <div class="photo-overlay" onclick="openPhotoViewer('${src}')" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;background:rgba(0,0,0,.3);transition:opacity .15s;font-size:22px">🔍</div>
   `;
+  div.addEventListener('mouseenter', () => div.querySelector('.photo-overlay').style.opacity = '1');
+  div.addEventListener('mouseleave', () => div.querySelector('.photo-overlay').style.opacity = '0');
+  if (id) attachDeleteBtn(div, id, 'clinical');
   grid.appendChild(div);
+  setupDrag(grid);
+  return div;
 }
 
-async function deleteClinicalPhoto(btn, id) {
-  if (!confirm('ลบรูปนี้?')) return;
-  await db.from('clinical_photos').delete().eq('id', id);
-  btn.closest('div[style]').remove();
-  if (!document.getElementById('clinical-photos-grid').children.length) {
-    loadEmptyPhotoState();
-  }
+function attachDeleteBtn(div, id, type) {
+  div.dataset.id = id;
+  const btn = document.createElement('button');
+  btn.innerHTML = '✕';
+  btn.style.cssText = 'position:absolute;top:4px;right:4px;background:rgba(200,0,0,.85);border:none;color:white;border-radius:4px;width:22px;height:22px;cursor:pointer;font-size:13px;font-weight:700;z-index:10;line-height:1';
+  btn.onclick = async (e) => {
+    e.stopPropagation();
+    if (!confirm('ลบรูปนี้?')) return;
+    await db.from('clinical_photos').delete().eq('id', id);
+    const grid = div.parentElement;
+    div.remove();
+    if (type === 'clinical' && !grid?.querySelector('[draggable]')) loadEmptyPhotoState();
+    if (type === 'xray' && !grid?.querySelector('[draggable]')) loadEmptyXrayState();
+  };
+  div.appendChild(btn);
 }
 
 function loadEmptyPhotoState() {
-  const grid = document.getElementById('clinical-photos-grid');
-  grid.innerHTML = `<div id="clinical-photos-empty" style="grid-column:1/-1;aspect-ratio:4/3;background:var(--gray-50);border-radius:8px;border:1.5px dashed var(--gray-200);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--gray-400)"><span style="font-size:24px">📷</span><span style="font-size:12px">กด + เพื่อเพิ่มรูป</span></div>`;
+  document.getElementById('clinical-photos-grid').innerHTML =
+    `<div id="clinical-photos-empty" style="grid-column:1/-1;aspect-ratio:4/3;background:var(--gray-50);border-radius:8px;border:1.5px dashed var(--gray-200);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--gray-400)"><span style="font-size:24px">📷</span><span style="font-size:12px">กด + เพื่อเพิ่มรูป</span></div>`;
+}
+
+function loadEmptyXrayState() {
+  document.getElementById('xray-grid').innerHTML =
+    `<div id="xray-empty" style="grid-column:1/-1;aspect-ratio:4/3;background:#1a1a2e;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:rgba(255,255,255,.4);cursor:pointer" onclick="document.getElementById('xrayInput').click()"><span style="font-size:24px">🦷</span><span style="font-size:12px">กด + เพื่อเพิ่ม X-ray</span></div>`;
 }
 
 async function loadClinicalPhotos(pid) {
   const { data } = await db.from('clinical_photos').select('*').eq('patient_id', pid).order('created_at');
-  const grid = document.getElementById('clinical-photos-grid');
-  const xrayGrid = document.getElementById('xray-grid');
-  // Reset
-  grid.innerHTML = '';
-  xrayGrid.innerHTML = '';
-  const clinicalPhotos = (data || []).filter(p => p.category !== 'xray');
-  const xrays = (data || []).filter(p => p.category === 'xray');
-  if (!clinicalPhotos.length) {
-    loadEmptyPhotoState();
-  } else {
-    clinicalPhotos.forEach(p => addClinicalPhotoToGrid(p.url, p.label || p.category, p.id));
-  }
-  if (!xrays.length) {
-    xrayGrid.innerHTML = `<div id="xray-empty" style="grid-column:1/-1;aspect-ratio:4/3;background:#1a1a2e;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:rgba(255,255,255,.4);cursor:pointer" onclick="document.getElementById('xrayInput').click()"><span style="font-size:24px">🦷</span><span style="font-size:12px">กด + เพื่อเพิ่ม X-ray</span></div>`;
-  } else {
-    xrays.forEach(p => addXrayToGrid(p.url, p.label || 'X-ray', p.id));
-  }
+  document.getElementById('clinical-photos-grid').innerHTML = '';
+  document.getElementById('xray-grid').innerHTML = '';
+  const clinicals = (data||[]).filter(p => p.category !== 'xray');
+  const xrays    = (data||[]).filter(p => p.category === 'xray');
+  if (!clinicals.length) loadEmptyPhotoState();
+  else clinicals.forEach(p => addClinicalPhotoToGrid(p.url, p.label||p.category, p.id));
+  if (!xrays.length) loadEmptyXrayState();
+  else xrays.forEach(p => addXrayToGrid(p.url, p.label||'X-ray', p.id));
 }
 
 // ===== X-RAY =====
@@ -1588,56 +1625,80 @@ async function handleXrayUpload(input) {
   if (!input.files || !input.files.length || !currentPatientId) return;
   for (const file of Array.from(input.files)) {
     const label = prompt('ชื่อ X-ray (เช่น Periapical #11)', file.name.replace(/\.[^.]+$/, '')) || file.name;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      addXrayToGrid(reader.result, label, null);
-      const ts = Date.now();
-      const ext = file.name.split('.').pop();
-      const path = `${currentPatientId}/xray/${ts}.${ext}`;
-      const { error: upErr } = await db.storage.from('patient-files').upload(path, file, { upsert: true });
-      let url = null;
-      if (!upErr) {
-        const { data: sd } = await db.storage.from('patient-files').createSignedUrl(path, 60*60*24*365);
-        url = sd?.signedUrl || null;
-      }
-      await db.from('clinical_photos').insert({
-        patient_id: currentPatientId,
-        category: 'xray',
-        label,
-        url: url || `data:local;${path}`
-      });
-    };
-    reader.readAsDataURL(file);
+    await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const div = addXrayToGrid(reader.result, label, null);
+        const ts = Date.now();
+        const ext = file.name.split('.').pop();
+        const url = await uploadAndGetUrl(`${currentPatientId}/xray/${ts}.${ext}`, file);
+        const { data: saved } = await db.from('clinical_photos').insert({
+          patient_id: currentPatientId, category: 'xray', label, url: url || ''
+        }).select('id').single();
+        if (saved?.id) attachDeleteBtn(div, saved.id, 'xray');
+        resolve();
+      };
+      reader.readAsDataURL(file);
+    });
   }
 }
 
 function addXrayToGrid(src, label, id) {
-  const empty = document.getElementById('xray-empty');
-  if (empty) empty.remove();
+  document.getElementById('xray-empty')?.remove();
   const grid = document.getElementById('xray-grid');
   const div = document.createElement('div');
   div.className = 'xray-item';
+  div.draggable = true;
+  div.dataset.id = id || '';
   div.style.position = 'relative';
+  div.style.cursor = 'grab';
   div.innerHTML = `
-    <img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:6px" onclick="openPhotoViewer('${src}')">
+    <img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;pointer-events:none">
     <div class="xray-label">${label}</div>
-    ${id ? `<button onclick="deleteXray(this,'${id}')" style="position:absolute;top:4px;right:4px;background:rgba(255,0,0,.7);border:none;color:white;border-radius:4px;width:20px;height:20px;cursor:pointer;font-size:12px">✕</button>` : ''}
+    <div class="photo-overlay" onclick="openPhotoViewer('${src}')" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;background:rgba(0,0,0,.3);transition:opacity .15s;font-size:22px;border-radius:6px">🔍</div>
   `;
+  div.addEventListener('mouseenter', () => div.querySelector('.photo-overlay').style.opacity = '1');
+  div.addEventListener('mouseleave', () => div.querySelector('.photo-overlay').style.opacity = '0');
+  if (id) attachDeleteBtn(div, id, 'xray');
   grid.appendChild(div);
+  setupDrag(grid);
+  return div;
 }
 
-async function deleteXray(btn, id) {
-  if (!confirm('ลบ X-ray นี้?')) return;
-  await db.from('clinical_photos').delete().eq('id', id);
-  btn.closest('.xray-item').remove();
+// ===== DRAG TO REORDER =====
+function setupDrag(container) {
+  let dragEl = null;
+  // Remove old listeners by cloning (avoid duplicate)
+  const newC = container.cloneNode(false);
+  while (container.firstChild) newC.appendChild(container.firstChild);
+  container.parentNode.replaceChild(newC, container);
+
+  newC.addEventListener('dragstart', e => {
+    dragEl = e.target.closest('[draggable="true"]');
+    if (!dragEl) return;
+    setTimeout(() => { if (dragEl) dragEl.style.opacity = '.4'; }, 0);
+  });
+  newC.addEventListener('dragend', e => {
+    if (dragEl) dragEl.style.opacity = '';
+    dragEl = null;
+  });
+  newC.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (!dragEl) return;
+    const target = e.target.closest('[draggable="true"]');
+    if (!target || target === dragEl) return;
+    const rect = target.getBoundingClientRect();
+    const after = e.clientX > rect.left + rect.width / 2;
+    newC.insertBefore(dragEl, after ? target.nextSibling : target);
+  });
 }
 
 // ===== PHOTO VIEWER =====
 function openPhotoViewer(src) {
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
   overlay.onclick = () => overlay.remove();
-  overlay.innerHTML = `<img src="${src}" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px">`;
+  overlay.innerHTML = `<img src="${src}" style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:8px">`;
   document.body.appendChild(overlay);
 }
 
@@ -1717,6 +1778,11 @@ function showView(id) {
   currentView = id;
   closeSidebar();
   if (id === 'dashboard') loadDashboard();
+  // Save last view (not case-detail — that's saved by openCase)
+  if (id !== 'case-detail') {
+    localStorage.setItem('notis_view', id);
+    localStorage.removeItem('notis_patient');
+  }
 }
 
 
