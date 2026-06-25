@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notis — ระบบบันทึกข้อมูลคนไข้</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root {
+    --blue: #CB70A4;
+    --blue-light: #FDF0F7;
+    --blue-mid: #E9AECF;
+    --red: #FF5757;
+    --red-light: #FFF0F0;
+    --red-mid: #FFBCBC;
+    --green: #BECB70;
+    --green-light: #F6F9E8;
+    --yellow: #CBA670;
+    --yellow-light: #FBF4E8;
+    --purple: #A870CB;
+    --purple-light: #F7F0FB;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
+    --tooth-normal: #FDF0F7;
+    --tooth-marked: #CB70A4;
+    --tooth-border: #E9AECF;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray-50); color: var(--gray-800); font-size: 14px; }
+
+  /* LAYOUT */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar { width: 220px; background: white; border-right: 1px solid var(--gray-200); display: flex; flex-direction: column; flex-shrink: 0; }
+  .main { flex: 1; overflow-y: auto; }
+
+  /* SIDEBAR */
+  .sidebar-logo { padding: 20px 18px 16px; border-bottom: 1px solid var(--gray-100); }
+  .sidebar-logo .logo-title { font-size: 18px; font-weight: 700; color: var(--blue); }
+  .sidebar-logo .logo-sub { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+  .sidebar-nav { padding: 12px 10px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 13.5px; color: var(--gray-600); transition: all .15s; margin-bottom: 2px; }
+  .nav-item:hover { background: var(--gray-50); }
+  .nav-item.active { background: var(--blue-light); color: var(--blue); font-weight: 600; }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-user { padding: 14px 16px; border-top: 1px solid var(--gray-100); display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--blue); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .user-info .name { font-size: 13px; font-weight: 600; color: var(--gray-800); }
+  .user-info .role { font-size: 11px; color: var(--gray-400); }
+
+  /* PAGE VIEWS */
+  .view { display: none; padding: 28px 32px; }
+  .view.active { display: block; }
+
+  /* PAGE HEADER */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .page-title { font-size: 22px; font-weight: 700; color: var(--gray-900); }
+  .page-subtitle { font-size: 13px; color: var(--gray-500); margin-top: 3px; }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-primary:hover { background: #B55C90; }
+  .btn-ghost { background: transparent; color: var(--gray-600); border: 1px solid var(--gray-200); }
+  .btn-ghost:hover { background: var(--gray-50); }
+  .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid var(--red-mid); }
+
+  /* CARDS */
+  .card { background: white; border-radius: var(--radius); border: 1px solid var(--gray-200); padding: 20px; }
+
+  /* STATS ROW */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: white; border-radius: var(--radius); border: 1px solid var(--gray-200); padding: 18px 20px; }
+  .stat-label { font-size: 12px; color: var(--gray-500); font-weight: 500; }
+  .stat-value { font-size: 28px; font-weight: 700; color: var(--gray-900); margin-top: 4px; }
+  .stat-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-top: 6px; font-weight: 500; }
+
+  /* UPCOMING */
+  .upcoming-list { display: flex; flex-direction: column; gap: 10px; }
+  .upcoming-item { display: flex; flex-direction: column; padding: 14px 16px; background: white; border-radius: var(--radius); border: 1px solid var(--gray-200); cursor: pointer; transition: border-color .15s; }
+  .upcoming-item:hover { border-color: var(--blue-mid); }
+  .upcoming-item-row { display: flex; align-items: center; gap: 14px; }
+  .upcoming-note { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--gray-100); display: flex; align-items: flex-start; gap: 6px; }
+  .upcoming-note-label { font-size: 10.5px; font-weight: 700; color: var(--blue); background: var(--blue-light); padding: 1px 6px; border-radius: 4px; white-space: nowrap; margin-top: 1px; }
+  .upcoming-note-text { font-size: 12px; color: var(--gray-600); line-height: 1.5; }
+  .upcoming-date { text-align: center; min-width: 44px; }
+  .upcoming-date .day { font-size: 20px; font-weight: 700; color: var(--blue); line-height: 1; }
+  .upcoming-date .month { font-size: 10px; color: var(--gray-400); text-transform: uppercase; margin-top: 2px; }
+  .upcoming-divider { width: 1px; background: var(--gray-200); height: 36px; }
+  .upcoming-info { flex: 1; }
+  .upcoming-name { font-weight: 600; font-size: 14px; }
+  .upcoming-detail { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+  .upcoming-case { font-size: 11px; font-weight: 600; color: var(--blue); background: var(--blue-light); padding: 2px 8px; border-radius: 20px; }
+
+  /* STATUS BADGES */
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .badge-charting { background: var(--gray-100); color: var(--gray-600); }
+  .badge-treatment { background: var(--blue-light); color: var(--blue); }
+  .badge-lab { background: var(--yellow-light); color: var(--yellow); }
+  .badge-done { background: var(--green-light); color: var(--green); }
+
+  /* TREATMENT TYPE BADGES */
+  .tx-badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 20px; }
+  .tx-veneer  { background: var(--blue-light); color: var(--blue); }
+  .tx-filling { background: var(--green-light); color: var(--green); }
+  .tx-crown   { background: #FFF7ED; color: #EA580C; }
+  .tx-inlay   { background: #ECFEFF; color: #0891B2; }
+  .tx-onlay   { background: #FDF4FF; color: #A21CAF; }
+  .tx-overlay { background: #EEF2FF; color: #4F46E5; }
+  .tx-fmr     { background: var(--red-light); color: var(--red); }
+
+  /* CASE LIST */
+  .case-toolbar { display: flex; gap: 10px; margin-bottom: 18px; align-items: center; }
+  .search-box { flex: 1; display: flex; align-items: center; gap: 8px; background: white; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0 14px; }
+  .search-box input { border: none; outline: none; flex: 1; padding: 9px 0; font-size: 13.5px; background: transparent; }
+  .filter-tabs { display: flex; gap: 4px; background: var(--gray-100); padding: 3px; border-radius: 8px; }
+  .filter-tab { padding: 5px 12px; border-radius: 6px; font-size: 12.5px; cursor: pointer; font-weight: 500; color: var(--gray-500); transition: all .15s; }
+  .filter-tab.active { background: white; color: var(--gray-800); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .case-table { background: white; border-radius: var(--radius); border: 1px solid var(--gray-200); overflow: hidden; }
+  .case-table-header { display: grid; grid-template-columns: 1fr 100px 110px 120px 80px; gap: 0; padding: 10px 20px; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); font-size: 12px; font-weight: 600; color: var(--gray-500); }
+  .case-row { display: grid; grid-template-columns: 1fr 100px 110px 120px 80px; gap: 0; padding: 14px 20px; border-bottom: 1px solid var(--gray-100); cursor: pointer; transition: background .1s; align-items: center; }
+  .case-row:last-child { border-bottom: none; }
+  .case-row:hover { background: var(--gray-50); }
+  .case-name { font-weight: 600; font-size: 14px; }
+  .case-code { font-size: 11.5px; color: var(--gray-400); margin-top: 2px; }
+  .case-photo { width: 36px; height: 36px; border-radius: 50%; background: var(--gray-200); object-fit: cover; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+  /* CASE DETAIL */
+  .back-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--gray-500); font-size: 13.5px; cursor: pointer; margin-bottom: 16px; padding: 6px 0; }
+  .back-btn:hover { color: var(--gray-800); }
+  .allergy-banner { background: var(--red-light); border: 1.5px solid var(--red-mid); border-radius: 10px; padding: 12px 18px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .allergy-icon { font-size: 20px; }
+  .allergy-text strong { color: var(--red); font-size: 14px; }
+  .allergy-text span { font-size: 13px; color: var(--gray-700); margin-left: 6px; }
+  .detail-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px; }
+  .field-group { margin-bottom: 14px; }
+  .field-label { font-size: 11.5px; font-weight: 600; color: var(--gray-500); margin-bottom: 4px; }
+  .field-value { font-size: 14px; color: var(--gray-800); }
+  .field-value.highlight { font-weight: 600; }
+  .patient-photo { width: 100%; aspect-ratio: 3/4; border-radius: 10px; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 48px; margin-bottom: 14px; border: 1px solid var(--gray-200); }
+
+  /* TABS */
+  .tab-bar { display: flex; border-bottom: 2px solid var(--gray-200); margin-bottom: 22px; gap: 0; }
+  .tab { padding: 10px 20px; font-size: 13.5px; font-weight: 600; cursor: pointer; color: var(--gray-500); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* TOOTH CHART */
+  .tooth-chart { background: white; border-radius: var(--radius); border: 1px solid var(--gray-200); padding: 20px; }
+  .chart-row { display: flex; justify-content: center; gap: 4px; margin-bottom: 6px; }
+  .chart-divider { display: flex; justify-content: center; align-items: center; padding: 4px 0; margin-bottom: 6px; }
+  .chart-divider-line { flex: 1; max-width: 200px; height: 1px; background: var(--gray-300); }
+  .chart-divider-label { font-size: 10px; color: var(--gray-400); margin: 0 10px; font-weight: 600; }
+  .tooth { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform .12s; position: relative; }
+  .tooth:hover { transform: scale(1.12); }
+  .tooth-svg { display: block; overflow: visible; }
+  .tc { fill: #F0F9FF; stroke: #7DD3FC; stroke-width: 1.2; stroke-linejoin: round; transition: fill .15s, stroke .15s; }
+  .tr { fill: #F8FAFC; stroke: #CBD5E1; stroke-width: 1; stroke-linejoin: round; transition: fill .15s; }
+  .tooth.marked .tc { fill: var(--tooth-marked); stroke: #B55C90; }
+  .tooth.marked .tr { fill: var(--blue-mid); stroke: var(--blue-mid); }
+  .tooth:hover .tc { fill: var(--blue-light); stroke: var(--blue); }
+  .tooth.marked:hover .tc { fill: #B55C90; stroke: #9E4E7D; }
+  .tooth-num { font-size: 9px; color: var(--gray-400); margin-top: 2px; line-height: 1; }
+  .tooth.marked .tooth-num { color: var(--blue); font-weight: 700; }
+  .tooth-dot { position: absolute; top: 1px; right: 0; width: 6px; height: 6px; border-radius: 50%; background: #F59E0B; border: 1.5px solid white; z-index: 2; }
+  #ttip { position: fixed; background: #1E293B; color: #F1F5F9; font-size: 12px; padding: 6px 11px; border-radius: 8px; pointer-events: none; z-index: 9999; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,.25); opacity: 0; transition: opacity .12s; }
+  #ttip.on { opacity: 1; }
+  .exp-row { display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:8px; cursor:pointer; border:1.5px solid var(--gray-200); background:white; transition:border-color .15s, background .15s; }
+  .exp-row:hover { border-color:var(--blue-mid); background:var(--blue-light); }
+  .exp-label { flex:1; }
+  .exp-name { font-size:13.5px; font-weight:600; color:var(--gray-800); }
+  .exp-sub { font-size:11.5px; color:var(--gray-400); margin-top:1px; }
+
+  /* TREATMENT RECORD */
+  .visit-list { display: flex; flex-direction: column; gap: 12px; }
+  .visit-card { background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 16px 18px; position: relative; }
+  .visit-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--blue); border-radius: 3px 0 0 3px; }
+  .visit-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .visit-badge { background: var(--blue-light); color: var(--blue); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+  .visit-date { font-size: 12px; color: var(--gray-400); }
+  .visit-treatment { font-size: 14px; font-weight: 600; color: var(--gray-800); margin-bottom: 4px; }
+  .visit-note { font-size: 13px; color: var(--gray-600); margin-bottom: 8px; }
+  .visit-nv { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+  .visit-nv-label { color: var(--gray-400); font-weight: 600; }
+  .visit-nv-val { color: var(--blue); font-weight: 600; }
+
+  /* XRAY */
+  .xray-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .xray-item { aspect-ratio: 4/3; background: #1a1a2e; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; position: relative; overflow: hidden; border: 2px solid transparent; transition: border-color .15s; }
+  .xray-item:hover { border-color: var(--blue); }
+  .xray-label { position: absolute; bottom: 6px; left: 8px; font-size: 10px; color: rgba(255,255,255,.6); font-weight: 500; }
+
+  /* STATUS DROPDOWN */
+  .status-select { appearance: none; background: white; border: 1.5px solid var(--gray-200); border-radius: 8px; padding: 6px 28px 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
+
+  /* SECTION BLOCK */
+  .section-block { background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+
+  /* MODAL */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; display: none; align-items: center; justify-content: center; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: white; border-radius: 14px; width: 420px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+  .modal-header { padding: 20px 22px 16px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-close { width: 28px; height: 28px; border-radius: 6px; background: var(--gray-100); border: none; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+  .modal-body { padding: 20px 22px; }
+  .form-field { margin-bottom: 16px; }
+  .form-label { font-size: 12.5px; font-weight: 600; color: var(--gray-600); margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; padding: 9px 12px; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 14px; outline: none; transition: border-color .15s; }
+  .form-input:focus { border-color: var(--blue); }
+  .form-textarea { width: 100%; padding: 9px 12px; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: 14px; outline: none; min-height: 80px; resize: vertical; font-family: inherit; }
+  .form-textarea:focus { border-color: var(--blue); }
+  .modal-footer { padding: 16px 22px; border-top: 1px solid var(--gray-100); display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* TOOTH MODAL */
+  .tooth-modal-body { padding: 18px 22px; }
+  .tooth-modal-num { font-size: 32px; font-weight: 800; color: var(--blue); text-align: center; margin-bottom: 4px; }
+  .tooth-modal-name { font-size: 13px; color: var(--gray-400); text-align: center; margin-bottom: 16px; }
+
+  /* INLINE EDITABLE — tab-content fields behave inline, no border by default */
+  .tab-content .form-input,
+  .tab-content .form-textarea {
+    border-color: transparent;
+    background: transparent;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: background .15s, border-color .15s;
+  }
+  .tab-content .form-input:hover,
+  .tab-content .form-textarea:hover { background: var(--gray-100); border-color: transparent; }
+  .tab-content .form-input:focus,
+  .tab-content .form-textarea:focus { background: var(--blue-light); border-color: var(--blue-mid); outline: none; }
+
+  /* INLINE EDITABLE */
+  .inline-input { width: 100%; background: transparent; border: none; outline: none; font-size: 14px; color: var(--gray-800); padding: 2px 6px; margin: -2px -6px; border-radius: 6px; transition: background .15s; font-family: inherit; }
+  .inline-input.highlight { font-weight: 600; }
+  .inline-input:hover { background: var(--gray-100); }
+  .inline-input:focus { background: var(--blue-light); box-shadow: 0 0 0 1.5px var(--blue-mid); }
+  .inline-textarea { width: 100%; background: transparent; border: none; outline: none; font-size: 14px; color: var(--gray-800); padding: 2px 6px; margin: -2px -6px; border-radius: 6px; transition: background .15s; font-family: inherit; resize: none; line-height: 1.5; }
+  .inline-textarea:hover { background: var(--gray-100); }
+  .inline-textarea:focus { background: var(--blue-light); box-shadow: 0 0 0 1.5px var(--blue-mid); }
+
+  /* GRID HELPERS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* ADD CASE FORM */
+  .upload-box { border: 2px dashed var(--gray-300); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: border-color .15s; }
+  .upload-box:hover { border-color: var(--blue); }
+  .upload-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-text { font-size: 13px; color: var(--gray-500); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .detail-layout { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* LOGIN SCREEN */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--gray-50);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #login-screen.hidden { display: none; }
+  .login-card {
+    background: white; border-radius: 16px; border: 1px solid var(--gray-200);
+    padding: 40px 36px 36px; width: 380px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.08);
+  }
+  .login-logo { font-size: 26px; font-weight: 800; color: var(--blue); margin-bottom: 4px; }
+  .login-sub { font-size: 12.5px; color: var(--gray-400); margin-bottom: 32px; }
+  .login-field { margin-bottom: 16px; }
+  .login-label { font-size: 12px; font-weight: 700; color: var(--gray-500); margin-bottom: 6px; display: block; letter-spacing: .3px; text-transform: uppercase; }
+  .login-input {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-200);
+    border-radius: 9px; font-size: 14px; outline: none;
+    transition: border-color .15s; font-family: inherit;
+  }
+  .login-input:focus { border-color: var(--blue); }
+  .login-btn {
+    width: 100%; padding: 12px; background: var(--blue); color: white;
+    border: none; border-radius: 9px; font-size: 14.5px; font-weight: 700;
+    cursor: pointer; margin-top: 8px; transition: background .15s; font-family: inherit;
+  }
+  .login-btn:hover { background: #B55C90; }
+  .login-btn:disabled { opacity: .6; cursor: not-allowed; }
+  .login-error {
+    background: var(--red-light); border: 1px solid var(--red-mid);
+    color: var(--red); font-size: 12.5px; padding: 9px 13px; border-radius: 8px;
+    margin-top: 14px; display: none;
+  }
+  .login-error.show { display: block; }
+
+  /* SIDEBAR LOGOUT BUTTON */
+  .logout-btn {
+    display: flex; align-items: center; gap: 8px; background: none; border: none;
+    cursor: pointer; padding: 7px 10px; border-radius: 7px; font-size: 12px;
+    color: var(--gray-400); transition: background .15s, color .15s; font-family: inherit;
+    margin-top: 4px; width: 100%;
+  }
+  .logout-btn:hover { background: var(--red-light); color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🦷 Notis</div>
+    <div class="login-sub">MSc Restorative — SWU</div>
+    <div class="login-field">
+      <label class="login-label">Email</label>
+      <input id="loginEmail" class="login-input" type="email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label class="login-label">Password</label>
+      <input id="loginPassword" class="login-input" type="password" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter') signIn()">
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="signIn()">เข้าสู่ระบบ</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-title">🦷 Notis</div>
+      <div class="logo-sub">MSc, Restorative</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="showView('dashboard')">
+        <span class="icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showView('cases')">
+        <span class="icon">📋</span> Patients
+      </div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebarAvatar">กฟ</div>
+      <div class="user-info">
+        <div class="name" id="sidebarName">Gift</div>
+        <div class="role">Resident, SWU</div>
+      </div>
+    </div>
+    <div style="padding: 0 10px 12px">
+      <button class="logout-btn" onclick="signOut()">
+        <span>🚪</span> ออกจากระบบ
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ===== DASHBOARD VIEW ===== -->
+    <div class="view active" id="view-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle">16–22 มิ.ย. 2026 / 12 cases</div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">＋ เพิ่มเคสใหม่</button>
+      </div>
+
+      <!-- STATS -->
+      <div class="stats-row">
+        <div class="stat-card" style="position:relative;cursor:default" onmouseenter="showStatTip(this,'charting')" onmouseleave="hideStatTip()">
+          <div class="stat-label">Charting</div>
+          <div class="stat-value" style="color:var(--gray-600)">3</div>
+        </div>
+        <div class="stat-card" style="position:relative;cursor:default" onmouseenter="showStatTip(this,'treatment')" onmouseleave="hideStatTip()">
+          <div class="stat-label">Treatment</div>
+          <div class="stat-value" style="color:var(--blue)">4</div>
+        </div>
+        <div class="stat-card" style="position:relative;cursor:default" onmouseenter="showStatTip(this,'lab')" onmouseleave="hideStatTip()">
+          <div class="stat-label">Lab work</div>
+          <div class="stat-value" style="color:var(--yellow)">2</div>
+        </div>
+        <div class="stat-card" style="position:relative;cursor:default" onmouseenter="showStatTip(this,'done')" onmouseleave="hideStatTip()">
+          <div class="stat-label">Done</div>
+          <div class="stat-value" style="color:var(--green)">3</div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD GRID -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+        <!-- Upcoming Cases -->
+        <div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:14px">📅 Upcoming Cases</div>
+          <div class="upcoming-list">
+            <div class="upcoming-item" onclick="openCase('001','txplan')">
+              <div class="upcoming-item-row">
+                <div class="upcoming-date"><div class="day">18</div><div class="month">มิ.ย.</div></div>
+                <div class="upcoming-divider"></div>
+                <div class="upcoming-info">
+                  <div class="upcoming-name">พิมพ์ชนก วัฒนา <span style="font-size:11px;font-weight:500;color:var(--gray-400)">· Visit 4</span></div>
+                  <div class="upcoming-detail">10:00 — Veneer prep #11, 12, 21, 22</div>
+                </div>
+                <span class="upcoming-case">case-001</span>
+              </div>
+              <div class="upcoming-note">
+                <span class="upcoming-note-label">Note</span>
+                <span class="upcoming-note-text">เตรียม shade guide · เช็ค provisional ก่อนเริ่ม · redo enamel reduction 0.4mm</span>
+              </div>
+            </div>
+            <div class="upcoming-item" onclick="openCase('003','txplan')">
+              <div class="upcoming-item-row">
+                <div class="upcoming-date"><div class="day">19</div><div class="month">มิ.ย.</div></div>
+                <div class="upcoming-divider"></div>
+                <div class="upcoming-info">
+                  <div class="upcoming-name">ณัฐวุฒิ สมบัติ <span style="font-size:11px;font-weight:500;color:var(--gray-400)">· Visit 5</span></div>
+                  <div class="upcoming-detail">13:30 — Try-in ceramic veneer</div>
+                </div>
+                <span class="upcoming-case">case-003</span>
+              </div>
+              <div class="upcoming-note">
+                <span class="upcoming-note-label">Note</span>
+                <span class="upcoming-note-text">รับงานจาก lab ก่อน · เตรียม try-in paste + RelyX Veneer cement</span>
+              </div>
+            </div>
+            <div class="upcoming-item" onclick="openCase('005','txplan')">
+              <div class="upcoming-item-row">
+                <div class="upcoming-date"><div class="day">20</div><div class="month">มิ.ย.</div></div>
+                <div class="upcoming-divider"></div>
+                <div class="upcoming-info">
+                  <div class="upcoming-name">สุธีรา จิตรดี <span style="font-size:11px;font-weight:500;color:var(--gray-400)">· Visit 1</span></div>
+                  <div class="upcoming-detail">09:00 — Charting + impression</div>
+                </div>
+                <span class="upcoming-case">case-005</span>
+              </div>
+              <div class="upcoming-note">
+                <span class="upcoming-note-label">Note</span>
+                <span class="upcoming-note-text">เตรียม consent form · ถ่าย x-ray periapical #14, 15</span>
+              </div>
+            </div>
+            <div class="upcoming-item" onclick="openCase('007','txplan')">
+              <div class="upcoming-item-row">
+                <div class="upcoming-date"><div class="day">22</div><div class="month">มิ.ย.</div></div>
+                <div class="upcoming-divider"></div>
+                <div class="upcoming-info">
+                  <div class="upcoming-name">ภัทรวดี แสงทอง <span style="font-size:11px;font-weight:500;color:var(--gray-400)">· Visit 2</span></div>
+                  <div class="upcoming-detail">14:00 — Composite bonding #13</div>
+                </div>
+                <span class="upcoming-case">case-007</span>
+              </div>
+              <div class="upcoming-note">
+                <span class="upcoming-note-label">Note</span>
+                <span class="upcoming-note-text">เตรียม shade A2 composite · เช็ค mock-up รูปก่อน</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- คอลัมน์ขวา: ทั้งหมด -->
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:14px">📋 Requirement</div>
+            <div style="background:white;border:1px solid var(--gray-200);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="tx-badge tx-veneer" style="min-width:58px;text-align:center;font-size:11px">Veneer</span>
+                <div style="flex:1;background:var(--gray-100);border-radius:99px;height:7px;overflow:hidden">
+                  <div style="width:58%;height:100%;background:var(--blue);border-radius:99px"></div>
+                </div>
+                <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);min-width:18px;text-align:right">7</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="tx-badge tx-crown" style="min-width:58px;text-align:center;font-size:11px">Crown</span>
+                <div style="flex:1;background:var(--gray-100);border-radius:99px;height:7px;overflow:hidden">
+                  <div style="width:25%;height:100%;background:#EA580C;border-radius:99px"></div>
+                </div>
+                <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);min-width:18px;text-align:right">3</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="tx-badge tx-inlay" style="min-width:58px;text-align:center;font-size:11px">Inlay</span>
+                <div style="flex:1;background:var(--gray-100);border-radius:99px;height:7px;overflow:hidden">
+                  <div style="width:8%;height:100%;background:#0891B2;border-radius:99px"></div>
+                </div>
+                <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);min-width:18px;text-align:right">1</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="tx-badge tx-filling" style="min-width:58px;text-align:center;font-size:11px">Filling</span>
+                <div style="flex:1;background:var(--gray-100);border-radius:99px;height:7px;overflow:hidden">
+                  <div style="width:8%;height:100%;background:var(--green);border-radius:99px"></div>
+                </div>
+                <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);min-width:18px;text-align:right">1</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:14px">📵 ไม่มีนัดต่อ</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:white;border:1px solid #FED7AA;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('006','record')">
+                <div>
+                  <div style="font-weight:600;font-size:13.5px">อัจฉรา ทวีสุข</div>
+                  <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">Treatment · Veneer · 3 มิ.ย.</div>
+                </div>
+                <span style="font-size:10.5px;font-weight:600;color:#EA580C;background:#FFF7ED;padding:2px 7px;border-radius:20px;white-space:nowrap">ไม่มีนัด</span>
+              </div>
+              <div style="background:white;border:1px solid #FED7AA;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('009','record')">
+                <div>
+                  <div style="font-weight:600;font-size:13.5px">ปิยะ อนันต์</div>
+                  <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">Charting · Crown · 1 มิ.ย.</div>
+                </div>
+                <span style="font-size:10.5px;font-weight:600;color:#EA580C;background:#FFF7ED;padding:2px 7px;border-radius:20px;white-space:nowrap">ไม่มีนัด</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:14px">🔀 Refer ค้างอยู่</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:white;border:1px solid #E9D5FF;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('002','txplan')">
+                <div>
+                  <div style="font-weight:600;font-size:13.5px">ธนพัฒน์ ศรีอ่อน</div>
+                  <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">Perio scaling ก่อนเริ่ม</div>
+                </div>
+                <span style="font-size:10.5px;font-weight:600;color:#A21CAF;background:#FDF4FF;padding:2px 7px;border-radius:20px;white-space:nowrap">ค้างอยู่</span>
+              </div>
+              <div style="background:white;border:1px solid #E9D5FF;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('008','txplan')">
+                <div>
+                  <div style="font-weight:600;font-size:13.5px">มนต์ชัย วงษ์ดี</div>
+                  <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">Ortho consult</div>
+                </div>
+                <span style="font-size:10.5px;font-weight:600;color:#A21CAF;background:#FDF4FF;padding:2px 7px;border-radius:20px;white-space:nowrap">ค้างอยู่</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:14px">⏰ งาน Lab ยังไม่มา</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:white;border:1px solid #FCA5A5;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('002','lab')">
+                <div>
+                  <div style="font-weight:600;font-size:13.5px">ธนพัฒน์ ศรีอ่อน</div>
+                  <div style="font-size:11.5px;color:var(--gray-400);margin-top:1px">Smile Lab Bangkok</div>
+                  <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">ส่ง 5 มิ.ย. · ผ่านมา <span style="color:var(--red);font-weight:700">14 วัน</span></div>
+                </div>
+                <span style="font-size:10.5px;font-weight:600;color:var(--red);background:var(--red-light);padding:2px 7px;border-radius:20px;white-space:nowrap">เกิน</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CASES LIST VIEW ===== -->
+    <div class="view" id="view-cases">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Patients</div>
+          <div class="page-subtitle">ทั้งหมด 12 เคส</div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">＋ เพิ่มเคสใหม่</button>
+      </div>
+      <div class="case-toolbar">
+        <div class="search-box">
+          <span>🔍</span>
+          <input id="patientSearch" type="text" placeholder="ค้นหาชื่อคนไข้ หรือ รหัสคนไข้..." oninput="filterPatients()"  autocomplete="off">
+        </div>
+        <div class="filter-tabs">
+          <div class="filter-tab active" data-filter="all" onclick="setFilter(this)">ทั้งหมด</div>
+          <div class="filter-tab" data-filter="active" onclick="setFilter(this)">Active</div>
+          <div class="filter-tab" data-filter="done" onclick="setFilter(this)">Done</div>
+        </div>
+      </div>
+      <div class="case-table">
+        <div class="case-table-header">
+          <div>คนไข้</div>
+          <div>รหัสคนไข้</div>
+          <div>ประเภท</div>
+          <div>Status</div>
+          <div>N/V ล่าสุด</div>
+        </div>
+        <div id="patient-list-body">
+          <div style="text-align:center;padding:48px;color:var(--gray-400)">กำลังโหลด...</div>
+        </div>
+        <div class="case-row" data-name="พิมพ์ชนก วัฒนา พิม case-001" data-status="active" onclick="openCase('001')" style="display:none">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="case-photo">👩</div>
+            <div><div class="case-name">พิมพ์ชนก วัฒนา</div><div class="case-code">081-234-5678</div></div>
+          </div>
+          <div style="font-weight:600;color:var(--blue)">case-001</div>
+          <div><span class="tx-badge tx-veneer">Veneer</span></div>
+          <div><span class="badge badge-treatment">Treatment</span></div>
+          <div style="font-size:12.5px;color:var(--gray-600)">18 มิ.ย.</div>
+        </div>
+        <div class="case-row" data-name="ธนพัฒน์ ศรีอ่อน case-002" data-status="active" onclick="openCase('002')">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="case-photo">👨</div>
+            <div><div class="case-name">ธนพัฒน์ ศรีอ่อน</div><div class="case-code">089-876-5432</div></div>
+          </div>
+          <div style="font-weight:600;color:var(--blue)">case-002</div>
+          <div><span class="tx-badge tx-crown">Crown</span></div>
+          <div><span class="badge badge-lab">Lab work</span></div>
+          <div style="font-size:12.5px;color:var(--gray-600)">25 มิ.ย.</div>
+        </div>
+        <div class="case-row" data-name="ณัฐวุฒิ สมบัติ case-003" data-status="active" onclick="openCase('003')">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="case-photo">👨</div>
+            <div><div class="case-name">ณัฐวุฒิ สมบัติ</div><div class="case-code">062-345-6789</div></div>
+          </div>
+          <div style="font-weight:600;color:var(--blue)">case-003</div>
+          <div><span class="tx-badge tx-veneer">Veneer</span></div>
+          <div><span class="badge badge-treatment">Treatment</span></div>
+          <div style="font-size:12.5px;color:var(--gray-600)">19 มิ.ย.</div>
+        </div>
+        <div class="case-row" data-name="วรรณิดา ทองดี case-004" data-status="done" onclick="openCase('004')">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="case-photo">👩</div>
+            <div><div class="case-name">วรรณิดา ทองดี</div><div class="case-code">091-111-2233</div></div>
+          </div>
+          <div style="font-weight:600;color:var(--blue)">case-004</div>
+          <div><span class="tx-badge tx-inlay">Inlay</span></div>
+          <div><span class="badge badge-done">Done</span></div>
+          <div style="font-size:12.5px;color:var(--gray-400)">—</div>
+        </div>
+        <div class="case-row" data-name="สุธีรา จิตรดี case-005" data-status="active" onclick="openCase('005')">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="case-photo">👩</div>
+            <div><div class="case-name">สุธีรา จิตรดี</div><div class="case-code">083-456-7890</div></div>
+          </div>
+          <div style="font-weight:600;color:var(--blue)">case-005</div>
+          <div><span class="tx-badge tx-veneer">Veneer</span></div>
+          <div><span class="badge badge-charting">Charting</span></div>
+          <div style="font-size:12.5px;color:var(--gray-600)">20 มิ.ย.</div>
+        </div>
+        <div id="emptyState" style="display:none;padding:48px 20px;text-align:center;color:var(--gray-400)">
+          <div style="font-size:32px;margin-bottom:10px">🔍</div>
+          <div style="font-size:14px;font-weight:600">ไม่พบคนไข้ที่ค้นหา</div>
+          <div style="font-size:12.5px;margin-top:4px">ลองค้นหาด้วยชื่อหรือรหัสคนไข้</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CASE DETAIL VIEW ===== -->
+    <div class="view" id="view-case-detail">
+      <div class="back-btn" onclick="goBack()">← กลับ</div>
+
+      <!-- ALLERGY BANNER -->
+      <div class="allergy-banner">
+        <div class="allergy-icon">⚠️</div>
+        <div class="allergy-text">
+          <strong>แพ้ยา:</strong>
+          <span id="allergyBannerText">Penicillin — ผื่นลมพิษ, บวม</span>
+        </div>
+      </div>
+
+      <!-- CASE HEADER -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="font-size:42px">👩</div>
+          <div>
+            <div style="font-size:22px;font-weight:800"><span id="hdrName">—</span> <span id="hdrNick" style="font-size:16px;font-weight:500;color:var(--gray-400)"></span></div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+              <span id="hdrAge" style="font-size:12px;color:var(--gray-400)">—</span>
+              <span style="color:var(--gray-300)">·</span>
+              <span id="hdrCode" style="font-size:12px;font-weight:700;color:var(--blue);background:var(--blue-light);padding:2px 10px;border-radius:20px">—</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <select class="status-select" id="txType" onchange="updateTxType(this)">
+            <option value="veneer" selected>Veneer</option>
+            <option value="filling">Filling</option>
+            <option value="crown">Crown</option>
+            <option value="inlay">Inlay</option>
+            <option value="onlay">Onlay</option>
+            <option value="overlay">Overlay</option>
+            <option value="fmr">FMR</option>
+          </select>
+          <select class="status-select" onchange="updateStatus(this)" id="caseStatus">
+            <option value="charting">📋 Charting</option>
+            <option value="treatment" selected>🔵 Treatment</option>
+            <option value="lab">🟡 Lab work</option>
+            <option value="done">✅ Done</option>
+          </select>
+          <button class="btn btn-ghost" onclick="openModal('exportModal')">📤 Export PDF</button>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tab-bar">
+        <div class="tab active" onclick="switchTab('info', this)">ข้อมูลทั่วไป</div>
+        <div class="tab" onclick="switchTab('clinical', this)">ข้อมูลคลินิก</div>
+        <div class="tab" onclick="switchTab('txplan', this)">Treatment Plan</div>
+        <div class="tab" onclick="switchTab('record', this)">Treatment Record</div>
+        <div class="tab" onclick="switchTab('material', this)">Material</div>
+        <div class="tab" onclick="switchTab('lab', this)">Lab</div>
+      </div>
+
+      <!-- TAB: INFO -->
+      <div class="tab-content active" id="tab-info">
+        <div class="detail-layout">
+          <div>
+            <div class="section-block">
+              <div class="section-title">📷 รูปหน้าตรง</div>
+              <div class="patient-photo">👩</div>
+              <button class="btn btn-ghost" style="width:100%;justify-content:center">เปลี่ยนรูป</button>
+            </div>
+            <div class="section-block">
+              <div class="section-title">Note</div>
+              <textarea class="form-textarea" data-table="patients" data-field="note" style="min-height:110px" placeholder="จดโน้ตถึงตัวเอง เช่น ข้อควรระวัง, สิ่งที่ต้องเตรียม, ข้อสังเกตเกี่ยวกับคนไข้..."></textarea>
+            </div>
+          </div>
+          <div>
+            <div class="section-block">
+              <div class="section-title">ข้อมูลส่วนตัว</div>
+              <div class="grid-2">
+                <div class="field-group"><div class="field-label">ชื่อ-นามสกุล</div><input class="inline-input highlight" data-table="patients" data-field="full_name"></div>
+                <div class="field-group"><div class="field-label">ชื่อเล่น</div><input class="inline-input" data-table="patients" data-field="nickname"></div>
+                <div class="field-group"><div class="field-label">อายุ</div><input class="inline-input" data-table="patients" data-field="age" type="number"></div>
+                <div class="field-group"><div class="field-label">เบอร์โทร</div><input class="inline-input" data-table="patients" data-field="phone"></div>
+                <div class="field-group"><div class="field-label">LINE ID</div><input class="inline-input" data-table="patients" data-field="line_id"></div>
+              </div>
+              <div class="field-group" style="margin-top:4px"><div class="field-label">ที่อยู่</div><textarea class="inline-textarea" rows="2" data-table="patients" data-field="address"></textarea></div>
+              <div class="field-group"><div class="field-label">อาชีพ</div><input class="inline-input" data-table="patients" data-field="occupation"></div>
+              <div class="field-group"><div class="field-label">วัน/เวลาที่สะดวกมานัด</div><input class="inline-input" data-table="patients" data-field="available_time"></div>
+            </div>
+            <div class="section-block" style="margin-top:14px">
+              <div class="section-title">Medical History</div>
+              <div class="field-group">
+                <div class="field-label">โรคประจำตัว</div>
+                <textarea class="inline-textarea" rows="2" style="margin-top:4px" data-table="patients" data-field="medical_conditions"></textarea>
+              </div>
+              <div class="field-group" style="margin-top:10px">
+                <div class="field-label">ยาที่ใช้อยู่</div>
+                <textarea class="inline-textarea" rows="2" style="margin-top:4px" data-table="patients" data-field="current_medications"></textarea>
+              </div>
+            </div>
+            <div class="section-block">
+              <div class="section-title">⚠️ ประวัติแพ้ยา</div>
+              <textarea id="allergyField" class="inline-textarea" rows="2" style="background:var(--red-light);border-radius:8px;padding:10px 12px;font-size:13.5px;color:var(--red);font-weight:600;width:100%" data-table="patients" data-field="allergy" oninput="updateAllergyBanner(this.value)"></textarea>
+            </div>
+            <div class="section-block">
+              <div class="section-title">Informed Consent</div>
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;background:var(--gray-50);border-radius:8px;border:1px solid var(--gray-200)">
+                <input id="consentCheckbox" type="checkbox" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0" data-table="patients" data-field="consent_received" onchange="saveField(this)">
+                <span style="font-size:13.5px;font-weight:600;color:var(--gray-700)">ได้รับ informed consent แล้ว</span>
+              </label>
+              <div class="field-group" style="margin-top:10px">
+                <div class="field-label">วันที่ได้รับ consent</div>
+                <input id="consentDate" class="form-input" type="date" style="margin-top:4px" data-table="patients" data-field="consent_date">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: CLINICAL -->
+      <div class="tab-content" id="tab-clinical">
+        <div class="section-block" style="margin-bottom:16px">
+          <div class="section-title">Chief Complaint</div>
+          <textarea class="inline-textarea" rows="2" style="margin-top:4px" data-table="patients" data-field="chief_complaint"></textarea>
+        </div>
+        <div class="section-block" style="margin-bottom:16px">
+          <div class="section-title">Dental History</div>
+          <textarea class="inline-textarea" rows="3" style="margin-top:4px" data-table="patients" data-field="dental_history"></textarea>
+        </div>
+
+        <div class="section-block" style="margin-bottom:16px">
+          <div class="section-title">Occlusion</div>
+          <textarea class="form-textarea" style="min-height:70px" data-table="patients" data-field="occlusion"></textarea>
+        </div>
+
+        <div class="section-block" style="margin-bottom:16px">
+          <div class="section-title" style="margin-bottom:14px">Periodontal Status</div>
+          <div class="grid-2">
+            <div class="field-group">
+              <div class="field-label">BOP</div>
+              <input class="form-input" style="margin-top:4px" data-table="patients" data-field="bop">
+            </div>
+            <div class="field-group">
+              <div class="field-label">Mobility</div>
+              <input class="form-input" style="margin-top:4px" data-table="patients" data-field="mobility">
+            </div>
+          </div>
+          <div class="field-group" style="margin-top:12px">
+            <div class="field-label">Pocket Depth</div>
+            <textarea class="form-textarea" style="min-height:60px" placeholder="เช่น 2-3 mm ทั่วไป, ไม่มี pocket ลึก" data-table="patients" data-field="pocket_depth"></textarea>
+          </div>
+        </div>
+
+        <!-- X-RAY -->
+        <!-- CLINICAL PHOTOS -->
+        <div class="section-block" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div class="section-title" style="margin-bottom:0">Clinical Photos</div>
+            <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px">＋ เพิ่มรูป</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--gray-400);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Extra-oral</div>
+              <div style="aspect-ratio:4/3;background:var(--gray-100);border-radius:8px;border:1.5px dashed var(--gray-300);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:border-color .15s" onmouseenter="this.style.borderColor='var(--blue)'" onmouseleave="this.style.borderColor='#D1D5DB'">
+                <span style="font-size:26px">📷</span>
+                <span style="font-size:11.5px;color:var(--gray-400)">อัพโหลดรูป</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--gray-400);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">Intraoral</div>
+              <div style="aspect-ratio:4/3;background:var(--gray-100);border-radius:8px;border:1.5px dashed var(--gray-300);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:border-color .15s" onmouseenter="this.style.borderColor='var(--blue)'" onmouseleave="this.style.borderColor='#D1D5DB'">
+                <span style="font-size:26px">🦷</span>
+                <span style="font-size:11.5px;color:var(--gray-400)">อัพโหลดรูป</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- X-RAY -->
+        <div class="section-block" style="margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div class="section-title" style="margin-bottom:0">X-Ray Films</div>
+            <button class="btn btn-ghost" style="padding:5px 12px;font-size:12px">＋ เพิ่ม X-ray</button>
+          </div>
+          <div class="xray-grid">
+            <div class="xray-item"><span>🦷</span><div class="xray-label">Periapical #11</div></div>
+            <div class="xray-item"><span>🦷</span><div class="xray-label">Periapical #21</div></div>
+          </div>
+        </div>
+
+        <!-- TOOTH CHART -->
+        <div class="tooth-chart">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div class="section-title" style="margin-bottom:0">Intra-oral Examination</div>
+          </div>
+
+          <!-- UPPER -->
+          <div class="chart-row" id="upper-row">
+            <!-- Upper right (18-11) -->
+          </div>
+          <div class="chart-divider">
+            <div class="chart-divider-line"></div>
+            <div class="chart-divider-label">R ขวา ←→ ซ้าย L</div>
+            <div class="chart-divider-line"></div>
+          </div>
+          <!-- LOWER -->
+          <div class="chart-row" id="lower-row">
+            <!-- Lower right (48-41) -->
+          </div>
+
+          <div style="margin-top:16px;border-top:1px solid var(--gray-100);padding-top:14px">
+            <div class="field-label" style="margin-bottom:6px">บันทึกภาพรวม</div>
+            <textarea class="form-textarea" style="min-height:60px" placeholder="เพิ่มบันทึกภาพรวมช่องปาก..." data-table="patients" data-field="intraoral_notes"></textarea>
+          </div>
+        </div>
+
+        <div class="section-block" style="margin-top:16px">
+          <div class="section-title">Treatment Plan</div>
+          <textarea class="inline-textarea" rows="4" style="margin-top:4px" data-table="patients" data-field="clinical_tx_plan"></textarea>
+        </div>
+      </div>
+
+      <!-- TAB: TREATMENT PLAN -->
+      <div class="tab-content" id="tab-txplan">
+        <div class="section-block">
+          <div class="section-title" style="margin-bottom:18px">Treatment Plan</div>
+          <div class="field-group">
+            <div class="field-label">Work</div>
+            <textarea class="form-textarea" style="margin-top:4px" placeholder="งานที่จะทำ เช่น Veneer #11-13, 21-23 (6 units)" data-table="treatment_plans" data-field="work"></textarea>
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">Pt's Expectation</div>
+            <textarea class="form-textarea" style="margin-top:4px" placeholder="สิ่งที่คนไข้คาดหวัง" data-table="treatment_plans" data-field="patient_expectation"></textarea>
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">Smile Analysis</div>
+            <textarea class="form-input" rows="4" style="margin-top:4px;resize:vertical" placeholder="เช่น midline, gingival levels, tooth proportion, lip line, smile arc..." data-table="treatment_plans" data-field="smile_analysis"></textarea>
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">Plan</div>
+            <textarea class="form-textarea" style="margin-top:4px" placeholder="แผนการรักษาแบบละเอียด" data-table="treatment_plans" data-field="plan"></textarea>
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">เวลาที่ใช้ (โดยประมาณ)</div>
+            <input class="form-input" style="margin-top:4px" placeholder="เช่น 3 visits / 6 สัปดาห์" data-table="treatment_plans" data-field="estimated_duration">
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div class="field-label" style="margin-bottom:0">Refer</div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--gray-500)">
+                <input type="checkbox" style="width:14px;height:14px;accent-color:var(--green);cursor:pointer" data-table="treatment_plans" data-field="refer_done" onchange="saveField(this)">
+                <span>เสร็จแล้ว</span>
+              </label>
+            </div>
+            <input class="form-input" placeholder="เช่น Perio scaling ก่อนเริ่ม, Ortho consult" data-table="treatment_plans" data-field="refer_detail">
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: RECORD -->
+      <div class="tab-content" id="tab-record">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-size:15px;font-weight:700">Treatment Record</div>
+          <button class="btn btn-primary" onclick="openVisitModal()">＋ เพิ่ม Visit</button>
+        </div>
+        <div class="visit-list" id="visit-list-body">
+          <div class="visit-card" style="display:none">
+            <div class="visit-header">
+              <span class="visit-badge">Visit 3</span>
+              <span class="visit-date">15 มิ.ย. 2026</span>
+              <span style="margin-left:auto;font-size:11.5px;color:var(--gray-400);cursor:pointer">✏️ แก้ไข</span>
+            </div>
+            <div class="visit-treatment">Veneer preparation #11, 12, 21, 22 + Provisional</div>
+            <div class="visit-note">ลด enamel 0.4 mm facial / 0.5 mm incisal. Margin shoulder chamfer. Provisional PMMA เซตดี คนไข้พอใจ shade และรูปทรง. Gingival slightly irritated #21</div>
+            <div class="visit-nv">
+              <span class="visit-nv-label">N/V:</span>
+              <span class="visit-nv-val">18 มิ.ย. 2026</span>
+              <span style="font-size:12px;color:var(--gray-500)">— Final impression + shade selection</span>
+            </div>
+          </div>
+          <div class="visit-card">
+            <div class="visit-header">
+              <span class="visit-badge">Visit 2</span>
+              <span class="visit-date">5 มิ.ย. 2026</span>
+              <span style="margin-left:auto;font-size:11.5px;color:var(--gray-400);cursor:pointer">✏️ แก้ไข</span>
+            </div>
+            <div class="visit-treatment">Smile design + Mock-up #11, 12, 21, 22</div>
+            <div class="visit-note">DSD (Digital Smile Design) นำเสนอ. คนไข้เลือก shape แบบ slightly square. Mock-up composite approve แล้ว. Photo documentation ครบ</div>
+            <div class="visit-nv">
+              <span class="visit-nv-label">N/V:</span>
+              <span class="visit-nv-val">15 มิ.ย. 2026</span>
+              <span style="font-size:12px;color:var(--gray-500)">— Veneer preparation</span>
+            </div>
+          </div>
+          <div class="visit-card">
+            <div class="visit-header">
+              <span class="visit-badge">Visit 1</span>
+              <span class="visit-date">25 พ.ค. 2026</span>
+              <span style="margin-left:auto;font-size:11.5px;color:var(--gray-400);cursor:pointer">✏️ แก้ไข</span>
+            </div>
+            <div class="visit-treatment">Charting + X-ray + Treatment planning</div>
+            <div class="visit-note">New patient. Perio OK. Periapical x-ray #11, 21 ปกติ. CC: discoloration — tetracycline staining. Discussed treatment option: veneer vs. bleaching. เลือก veneer 6 units. Consent signed.</div>
+            <div class="visit-nv">
+              <span class="visit-nv-label">N/V:</span>
+              <span class="visit-nv-val">5 มิ.ย. 2026</span>
+              <span style="font-size:12px;color:var(--gray-500)">— Smile design + mock-up</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: MATERIAL -->
+      <div class="tab-content" id="tab-material">
+        <div class="section-block">
+          <div class="section-title" style="margin-bottom:18px">Material Record</div>
+          <div class="field-group">
+            <div class="field-label">Treatment</div>
+            <input class="form-input" style="margin-top:4px" placeholder="เช่น Veneer #11-13, 21-23 (6 units)" data-table="materials" data-field="treatment">
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">Material</div>
+            <input class="form-input" style="margin-top:4px" placeholder="เช่น IPS e.max Press, Vita VM9" data-table="materials" data-field="material">
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">Provisional Material</div>
+            <input class="form-input" style="margin-top:4px" placeholder="เช่น PMMA, Bis-acryl, Protemp" data-table="materials" data-field="provisional_material">
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">Stump Shade</div>
+            <input class="form-input" style="margin-top:4px" placeholder="เช่น A3, B2" data-table="materials" data-field="stump_shade">
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">Final Shade</div>
+            <input class="form-input" style="margin-top:4px" placeholder="เช่น A1, BL2" data-table="materials" data-field="final_shade">
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">Cement Type</div>
+            <input class="form-input" style="margin-top:4px" placeholder="เช่น RelyX Veneer, Panavia V5, Variolink Esthetic" data-table="materials" data-field="cement_type">
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">Bonding Protocol</div>
+            <textarea class="form-input" rows="3" style="margin-top:4px;resize:vertical" placeholder="เช่น etch-and-rinse / self-etch, bonding agent ที่ใช้, เวลา light cure..." data-table="materials" data-field="bonding_protocol"></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TAB: LAB -->
+      <div class="tab-content" id="tab-lab">
+        <div class="section-block">
+          <div class="section-title" style="margin-bottom:18px">Lab</div>
+          <div class="field-group">
+            <div class="field-label">งานที่ส่ง</div>
+            <input class="form-input" style="margin-top:4px" placeholder="เช่น Ceramic veneer #11-13, 21-23 (6 units)" data-table="lab_work" data-field="work_description">
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">Lab</div>
+            <input class="form-input" style="margin-top:4px" placeholder="เช่น ชื่อ lab, ผู้ติดต่อ" data-table="lab_work" data-field="lab_name">
+          </div>
+          <div class="grid-2" style="margin-top:14px;gap:14px">
+            <div class="field-group">
+              <div class="field-label">วันที่ส่ง</div>
+              <input class="form-input" type="date" style="margin-top:4px" data-table="lab_work" data-field="sent_date">
+            </div>
+            <div class="field-group">
+              <div class="field-label">วันที่รับงาน</div>
+              <input class="form-input" type="date" style="margin-top:4px" data-table="lab_work" data-field="received_date">
+            </div>
+          </div>
+          <div class="field-group" style="margin-top:14px">
+            <div class="field-label">Note</div>
+            <textarea class="form-input" rows="3" style="margin-top:4px;resize:vertical" placeholder="รายละเอียดเพิ่มเติม เช่น shade instruction, special request..." data-table="lab_work" data-field="note"></textarea>
+          </div>
+        </div>
+
+        <div class="section-block" style="margin-top:16px">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;background:var(--gray-50);border-radius:8px;border:1px solid var(--gray-200)">
+            <input type="checkbox" style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0" data-table="lab_work" data-field="received" onchange="saveField(this)">
+            <span style="font-size:13.5px;font-weight:600;color:var(--gray-700)">รับงานจาก lab แล้ว</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ADD CASE MODAL -->
+<div class="modal-backdrop" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">➕ เพิ่มเคสใหม่</div>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="form-field"><label class="form-label">ชื่อ-นามสกุล *</label><input class="form-input" placeholder="เช่น สมใจ ดีงาม"></div>
+        <div class="form-field"><label class="form-label">ชื่อเล่น</label><input class="form-input" placeholder="เช่น ใจ"></div>
+        <div class="form-field"><label class="form-label">รหัสคนไข้</label><input class="form-input" placeholder="เช่น 67-001"></div>
+        <div class="form-field"><label class="form-label">อายุ</label><input class="form-input" type="number" placeholder="28"></div>
+      </div>
+      <div class="form-field" style="margin-top:4px">
+        <label class="form-label">Chief Complaint</label>
+        <textarea class="form-textarea" placeholder="อาการหลักที่คนไข้มาด้วย..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="createPatient()">สร้างเคส</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD VISIT MODAL -->
+<div class="modal-backdrop" id="visitModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">➕ เพิ่ม Visit</div>
+      <button class="modal-close" onclick="closeModal('visitModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="form-field"><label class="form-label">วันที่</label><input class="form-input" type="date" value="2026-06-18"></div>
+        <div class="form-field"><label class="form-label">Visit ที่</label><input class="form-input" type="number" value="4"></div>
+      </div>
+      <div class="form-field"><label class="form-label">Treatment ที่ทำ *</label><input class="form-input" placeholder="เช่น Final impression + shade selection"></div>
+      <div class="form-field"><label class="form-label">Note</label><textarea class="form-textarea" placeholder="รายละเอียดการรักษา สิ่งที่สังเกต..."></textarea></div>
+      <div class="form-field"><label class="form-label">N/V — วันนัดครั้งหน้า</label><input class="form-input" type="date"></div>
+      <div class="form-field"><label class="form-label">N/V — รายละเอียด</label><input class="form-input" placeholder="เช่น Try-in ceramic veneer, shade check"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('visitModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="createVisit()">บันทึก Visit</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOOTH NOTE MODAL -->
+<div class="modal-backdrop" id="toothModal">
+  <div class="modal" style="width:360px">
+    <div class="modal-header">
+      <div class="modal-title">🦷 ซี่ฟัน <span id="toothModalNum"></span></div>
+      <button class="modal-close" onclick="closeModal('toothModal')">✕</button>
+    </div>
+    <div class="tooth-modal-body">
+      <div class="tooth-modal-num" id="toothModalDisplay"></div>
+      <div class="tooth-modal-name" id="toothModalName"></div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="btn btn-primary" style="flex:1;justify-content:center" id="toothMarkBtn" onclick="toggleToothMark()">Mark ซี่นี้</button>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Note รายซี่</label>
+        <textarea class="form-textarea" id="toothNoteInput" placeholder="เช่น veneer, discoloration, fracture line..." style="min-height:70px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="saveToothNote()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let currentView = 'dashboard';
+let previousView = 'dashboard';
+let activeToothNum = null;
+const toothData = {}; // { num: { marked: bool, note: string } }
+
+// Pre-mark some teeth for demo
+[11,12,21,22,23].forEach(n => toothData[n] = { marked: true, note: 'Veneer — tetracycline discoloration' });
+toothData[14] = { marked: false, note: 'Composite filling (2y ago)' };
+toothData[24] = { marked: false, note: 'Composite filling (2y ago)' };
+
+// ===== SUPABASE =====
+const db = supabase.createClient(
+  'https://qrgwihuxdbknsdixfgqn.supabase.co',
+  'sb_publishable_eHrGe6tQ-QVduhe3LZK_8Q_1cFsmWne'
+);
+
+let currentPatientId = null;
+let currentPlanId    = null;
+let currentMaterialId = null;
+let currentLabId     = null;
+
+// ─── PATIENTS LIST ───
+async function loadPatients() {
+  const body = document.getElementById('patient-list-body');
+  body.innerHTML = '<div style="text-align:center;padding:48px;color:var(--gray-400)">กำลังโหลด...</div>';
+  const { data, error } = await db.from('patients').select('*').order('created_at', { ascending: false });
+  if (error) {
+    body.innerHTML = `<div style="text-align:center;padding:32px;color:var(--red);font-size:13px">โหลดข้อมูลไม่ได้: ${error.message}</div>`;
+    return;
+  }
+  document.querySelector('#view-cases .page-subtitle').textContent = `ทั้งหมด ${data.length} เคส`;
+  if (!data.length) {
+    body.innerHTML = '<div style="padding:48px 20px;text-align:center;color:var(--gray-400)"><div style="font-size:32px;margin-bottom:10px">🦷</div><div style="font-size:14px;font-weight:600">ยังไม่มีคนไข้</div><div style="font-size:12.5px;margin-top:4px">กด เพิ่มเคสใหม่ เพื่อเริ่มต้น</div></div>';
+    return;
+  }
+  const statusClass = { charting:'badge-charting', treatment:'badge-treatment', lab:'badge-lab', done:'badge-done' };
+  const statusLabel = { charting:'Charting', treatment:'Treatment', lab:'Lab work', done:'Done' };
+  body.innerHTML = data.map(p => {
+    const txBadge = p.tx_type ? `<span class="tx-badge tx-${p.tx_type}">${p.tx_type[0].toUpperCase()+p.tx_type.slice(1)}</span>` : '<span style="color:var(--gray-400)">—</span>';
+    return `<div class="case-row" data-name="${(p.full_name||'')} ${(p.nickname||'')} ${(p.patient_code||'')}" data-status="${p.status==='done'?'done':'active'}" onclick="openCase('${p.id}')">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="case-photo">👤</div>
+        <div><div class="case-name">${p.full_name||'—'}</div><div class="case-code">${p.phone||''}</div></div>
+      </div>
+      <div style="font-weight:600;color:var(--blue)">${p.patient_code||'—'}</div>
+      <div>${txBadge}</div>
+      <div><span class="badge ${statusClass[p.status]||'badge-charting'}">${statusLabel[p.status]||'Charting'}</span></div>
+      <div style="font-size:12.5px;color:var(--gray-500)">—</div>
+    </div>`;
+  }).join('') + '<div id="emptyState" style="display:none;padding:48px 20px;text-align:center;color:var(--gray-400)"><div style="font-size:32px;margin-bottom:10px">🔍</div><div style="font-size:14px;font-weight:600">ไม่พบคนไข้ที่ค้นหา</div></div>';
+}
+
+// ─── OPEN PATIENT ───
+async function openCase(id, tab) {
+  currentPatientId = id;
+  currentPlanId = null; currentMaterialId = null; currentLabId = null;
+  previousView = currentView;
+  showView('case-detail');
+  const targetTab = tab || 'info';
+  const tabEl = document.querySelector(`.tab[onclick*="'${targetTab}'"]`);
+  switchTab(targetTab, tabEl || document.querySelector('.tab'));
+
+  // clear all data-field inputs
+  document.querySelectorAll('[data-field]').forEach(el => {
+    if (el.type === 'checkbox') el.checked = false;
+    else el.value = '';
+  });
+
+  const { data: p } = await db.from('patients').select('*').eq('id', id).single();
+  if (!p) return;
+
+  // header
+  document.getElementById('hdrName').textContent = p.full_name || '—';
+  document.getElementById('hdrNick').textContent = p.nickname ? `(${p.nickname})` : '';
+  document.getElementById('hdrAge').textContent  = p.age ? `อายุ ${p.age} ปี` : '—';
+  document.getElementById('hdrCode').textContent = p.patient_code || '—';
+
+  // allergy banner
+  const banner = document.querySelector('.allergy-banner');
+  const allergyField = document.getElementById('allergyField');
+  allergyField.value = p.allergy || '';
+  banner.style.display = p.allergy ? 'flex' : 'none';
+  document.getElementById('allergyBannerText').textContent = p.allergy || '';
+
+  // fill patients fields
+  document.querySelectorAll('[data-table="patients"][data-field]').forEach(el => {
+    const v = p[el.dataset.field];
+    if (el.type === 'checkbox') el.checked = !!v;
+    else el.value = v != null ? v : '';
+  });
+
+  // status + tx type dropdowns
+  const statusSel = document.getElementById('caseStatus');
+  const txSel = document.getElementById('txType');
+  if (statusSel) { statusSel.value = p.status || 'charting'; updateStatus(statusSel); }
+  if (txSel && p.tx_type) { txSel.value = p.tx_type; updateTxType(txSel); }
+
+  // load related
+  loadTreatmentPlan(id);
+  loadMaterials(id);
+  loadLabWork(id);
+  loadVisits(id);
+}
+
+// ─── RELATED DATA ───
+async function loadTreatmentPlan(pid) {
+  const { data } = await db.from('treatment_plans').select('*').eq('patient_id', pid).maybeSingle();
+  if (!data) return;
+  currentPlanId = data.id;
+  document.querySelectorAll('[data-table="treatment_plans"][data-field]').forEach(el => {
+    const v = data[el.dataset.field];
+    if (el.type === 'checkbox') el.checked = !!v;
+    else el.value = v != null ? v : '';
+  });
+}
+
+async function loadMaterials(pid) {
+  const { data } = await db.from('materials').select('*').eq('patient_id', pid).maybeSingle();
+  if (!data) return;
+  currentMaterialId = data.id;
+  document.querySelectorAll('[data-table="materials"][data-field]').forEach(el => { el.value = data[el.dataset.field] || ''; });
+}
+
+async function loadLabWork(pid) {
+  const { data } = await db.from('lab_work').select('*').eq('patient_id', pid).order('created_at', { ascending:false });
+  if (!data || !data.length) return;
+  const lab = data[0];
+  currentLabId = lab.id;
+  document.querySelectorAll('[data-table="lab_work"][data-field]').forEach(el => {
+    if (el.type === 'checkbox') el.checked = !!lab[el.dataset.field];
+    else el.value = lab[el.dataset.field] != null ? lab[el.dataset.field] : '';
+  });
+}
+
+async function loadVisits(pid) {
+  const { data } = await db.from('visits').select('*').eq('patient_id', pid).order('visit_number', { ascending:false });
+  const container = document.getElementById('visit-list-body');
+  if (!data || !data.length) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400)">ยังไม่มี visit — กด เพิ่ม Visit เพื่อเริ่ม</div>';
+    return;
+  }
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const fmt = s => { if (!s) return '—'; const d = new Date(s); return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`; };
+  container.innerHTML = data.map(v => `
+    <div class="visit-card">
+      <div class="visit-header">
+        <span class="visit-badge">Visit ${v.visit_number||'?'}</span>
+        <span class="visit-date">${fmt(v.date)}</span>
+      </div>
+      <div class="visit-treatment">${v.treatment||''}</div>
+      ${v.note ? `<div class="visit-note">${v.note}</div>` : ''}
+      ${v.next_visit_date ? `<div class="visit-nv"><span class="visit-nv-label">N/V:</span><span class="visit-nv-val">${fmt(v.next_visit_date)}</span>${v.next_visit_detail ? `<span style="font-size:12px;color:var(--gray-500)">— ${v.next_visit_detail}</span>` : ''}</div>` : ''}
+    </div>`).join('');
+}
+
+// ─── SAVE FIELD ON BLUR ───
+async function saveField(el) {
+  if (!currentPatientId) return;
+  const table = el.dataset.table, field = el.dataset.field;
+  if (!table || !field) return;
+  const value = el.type === 'checkbox' ? el.checked : (el.value || null);
+
+  if (table === 'patients') {
+    await db.from('patients').update({ [field]: value }).eq('id', currentPatientId);
+    if (field === 'full_name') document.getElementById('hdrName').textContent = value||'—';
+    if (field === 'nickname') document.getElementById('hdrNick').textContent = value?`(${value})`:'';
+    if (field === 'age') document.getElementById('hdrAge').textContent = value?`อายุ ${value} ปี`:'—';
+    if (field === 'patient_code') document.getElementById('hdrCode').textContent = value||'—';
+  } else if (table === 'treatment_plans') {
+    if (currentPlanId) {
+      await db.from('treatment_plans').update({ [field]: value }).eq('id', currentPlanId);
+    } else {
+      const { data } = await db.from('treatment_plans').insert({ patient_id: currentPatientId, [field]: value }).select().single();
+      currentPlanId = data?.id;
+    }
+  } else if (table === 'materials') {
+    if (currentMaterialId) {
+      await db.from('materials').update({ [field]: value }).eq('id', currentMaterialId);
+    } else {
+      const { data } = await db.from('materials').insert({ patient_id: currentPatientId, [field]: value }).select().single();
+      currentMaterialId = data?.id;
+    }
+  } else if (table === 'lab_work') {
+    if (currentLabId) {
+      await db.from('lab_work').update({ [field]: value }).eq('id', currentLabId);
+    } else {
+      const { data } = await db.from('lab_work').insert({ patient_id: currentPatientId, [field]: value }).select().single();
+      currentLabId = data?.id;
+    }
+  }
+}
+
+// ─── CREATE PATIENT ───
+async function createPatient() {
+  const modal = document.getElementById('addModal');
+  const fields = modal.querySelectorAll('.form-input, .form-textarea');
+  const full_name = fields[0].value.trim();
+  if (!full_name) { fields[0].focus(); return; }
+  const { error } = await db.from('patients').insert({
+    full_name,
+    nickname: fields[1].value.trim() || null,
+    patient_code: fields[2].value.trim() || null,
+    age: parseInt(fields[3].value) || null,
+    chief_complaint: fields[4].value.trim() || null,
+  });
+  if (!error) { fields.forEach(f => f.value=''); closeModal('addModal'); loadPatients(); }
+  else alert('เพิ่มไม่ได้: ' + error.message);
+}
+
+// ─── CREATE VISIT ───
+async function createVisit() {
+  if (!currentPatientId) return;
+  const modal = document.getElementById('visitModal');
+  const inputs  = modal.querySelectorAll('.form-input');
+  const textas  = modal.querySelectorAll('.form-textarea');
+  const { error } = await db.from('visits').insert({
+    patient_id: currentPatientId,
+    date: inputs[0].value || null,
+    visit_number: parseInt(inputs[1].value) || null,
+    treatment: inputs[2].value.trim() || null,
+    note: textas[0].value.trim() || null,
+    next_visit_date: inputs[3].value || null,
+    next_visit_detail: inputs[4].value.trim() || null,
+  });
+  if (!error) { modal.querySelectorAll('input,textarea').forEach(f=>f.value=''); closeModal('visitModal'); loadVisits(currentPatientId); }
+  else alert('บันทึกไม่ได้: ' + error.message);
+}
+
+// ─── UPDATE STATUS → save to DB ───
+const _baseUpdateStatus = updateStatus;
+updateStatus = async function(sel) {
+  _baseUpdateStatus(sel);
+  if (currentPatientId) await db.from('patients').update({ status: sel.value }).eq('id', currentPatientId);
+};
+
+// ─── AUTH ───
+async function signIn() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginError');
+  errEl.classList.remove('show');
+  if (!email || !password) {
+    errEl.textContent = 'กรุณากรอก email และ password'; errEl.classList.add('show'); return;
+  }
+  btn.disabled = true; btn.textContent = 'กำลังเข้าสู่ระบบ...';
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
+  if (error) {
+    errEl.textContent = error.message === 'Invalid login credentials'
+      ? 'Email หรือ Password ไม่ถูกต้อง'
+      : error.message;
+    errEl.classList.add('show');
+  }
+}
+
+async function signOut() {
+  await db.auth.signOut();
+}
+
+function showApp(user) {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.querySelector('.app').style.display = 'flex';
+  if (user?.email) {
+    const initials = user.email.slice(0, 2).toUpperCase();
+    document.getElementById('sidebarAvatar').textContent = initials;
+    document.getElementById('sidebarName').textContent = user.email.split('@')[0];
+  }
+}
+
+function showLogin() {
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.querySelector('.app').style.display = 'none';
+}
+
+// ─── INIT ───
+document.querySelector('.app').style.display = 'none';
+db.auth.onAuthStateChange((event, session) => {
+  if (session?.user) {
+    showApp(session.user);
+    loadPatients();
+  } else {
+    showLogin();
+  }
+});
+
+// ===== ALLERGY SYNC =====
+function updateAllergyBanner(val) {
+  const el = document.getElementById('allergyBannerText');
+  if (el) el.textContent = val.trim() || '—';
+}
+
+// ===== PATIENT SEARCH & FILTER =====
+let activeFilter = 'all';
+
+function setFilter(tab) {
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  activeFilter = tab.dataset.filter;
+  filterPatients();
+}
+
+function filterPatients() {
+  const q = (document.getElementById('patientSearch')?.value || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('.case-row');
+  let visible = 0;
+  rows.forEach(row => {
+    const name = (row.dataset.name || '').toLowerCase();
+    const status = row.dataset.status || '';
+    const matchSearch = !q || name.includes(q);
+    const matchFilter = activeFilter === 'all' || status === activeFilter;
+    const show = matchSearch && matchFilter;
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  const empty = document.getElementById('emptyState');
+  if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+}
+
+// ===== AUTO-SAVE INDICATOR =====
+(function() {
+  const toast = document.createElement('div');
+  toast.id = 'save-toast';
+  toast.style.cssText = 'position:fixed;bottom:24px;right:28px;background:#1E293B;color:#F1F5F9;font-size:12.5px;font-weight:600;padding:7px 16px;border-radius:20px;opacity:0;transition:opacity .2s;z-index:9999;pointer-events:none';
+  toast.textContent = '✓ บันทึกแล้ว';
+  document.body.appendChild(toast);
+  let toastTimer;
+  function showSaved() {
+    clearTimeout(toastTimer);
+    toast.style.opacity = '1';
+    toastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 1400);
+  }
+  document.addEventListener('blur', e => {
+    const el = e.target;
+    if (el.closest('.tab-content') && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+      if (el.dataset.field) saveField(el).then(() => showSaved()).catch(() => {});
+      else showSaved();
+    }
+  }, true);
+})();
+
+// ===== NAVIGATION =====
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.includes(id === 'dashboard' ? 'Dashboard' : 'Patients')) n.classList.add('active');
+  });
+  currentView = id;
+}
+
+function openCase(id, tab) {
+  previousView = currentView;
+  showView('case-detail');
+  const targetTab = tab || 'info';
+  const tabEl = document.querySelector(`.tab[onclick*="'${targetTab}'"]`);
+  switchTab(targetTab, tabEl || document.querySelector('.tab'));
+}
+
+function goBack() {
+  showView(previousView === 'case-detail' ? 'dashboard' : previousView);
+}
+
+// ===== TABS =====
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ===== MODALS =====
+function openAddModal() { document.getElementById('addModal').classList.add('open'); }
+function openVisitModal() { document.getElementById('visitModal').classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close on backdrop click
+document.querySelectorAll('.modal-backdrop').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// ===== TOOTH CHART =====
+const toothNames = {
+  18:'3rd Molar',17:'2nd Molar',16:'1st Molar',15:'2nd Premolar',
+  14:'1st Premolar',13:'Canine',12:'Lateral Incisor',11:'Central Incisor',
+  21:'Central Incisor',22:'Lateral Incisor',23:'Canine',24:'1st Premolar',
+  25:'2nd Premolar',26:'1st Molar',27:'2nd Molar',28:'3rd Molar',
+  48:'3rd Molar',47:'2nd Molar',46:'1st Molar',45:'2nd Premolar',
+  44:'1st Premolar',43:'Canine',42:'Lateral Incisor',41:'Central Incisor',
+  31:'Central Incisor',32:'Lateral Incisor',33:'Canine',34:'1st Premolar',
+  35:'2nd Premolar',36:'1st Molar',37:'2nd Molar',38:'3rd Molar',
+};
+
+// ===== TOOTH SVG SHAPES (buccal view, viewBox 0 0 28 58) =====
+// tc = tooth crown path, tr = tooth root path(s)
+const TS = {
+  u_central: {
+    tc:'M4,27 C4,17 5,9 7,5 L21,5 C23,9 24,17 24,27 C22,32 18,34 14,34 C10,34 6,32 4,27Z',
+    tr:'M9,34 C8,43 9,52 14,57 C19,52 20,43 19,34Z'
+  },
+  u_lateral: {
+    tc:'M6,26 C6,17 7,9 9,6 L19,6 C21,9 22,17 22,26 C21,31 17,33 14,33 C11,33 7,31 6,26Z',
+    tr:'M10,33 C9,42 10,51 14,56 C18,51 19,42 18,33Z'
+  },
+  canine: {
+    tc:'M4,27 C5,16 7,7 10,4 L14,3 L18,4 C21,7 23,16 24,27 C23,31 18,34 14,34 C10,34 5,31 4,27Z',
+    tr:'M9,34 C8,44 9,53 14,58 C19,53 20,44 19,34Z'
+  },
+  u_pm1: {
+    tc:'M4,26 C4,15 5,8 8,5 C10,3 12,5 14,6 C16,5 18,3 20,5 C23,8 24,15 24,26 C23,30 18,32 14,32 C10,32 5,30 4,26Z',
+    tr:'M9,32 C8,40 8,48 10,53 C11,56 13,55 13,49 C13,44 12,37 11,32Z M17,32 C16,37 15,44 15,49 C15,55 17,56 18,53 C20,48 20,40 19,32Z'
+  },
+  u_pm2: {
+    tc:'M5,25 C5,15 6,8 9,5 C11,3 13,5 14,6 C15,5 17,3 19,5 C22,8 23,15 23,25 C22,29 17,31 14,31 C11,31 6,29 5,25Z',
+    tr:'M10,31 C9,41 9,51 14,56 C19,51 19,41 18,31Z'
+  },
+  u_mol1: {
+    tc:'M2,26 C2,14 4,7 8,4 C11,2 14,4 14,4 C14,4 17,2 20,4 C24,7 26,14 26,26 C25,31 19,33 14,33 C9,33 3,31 2,26Z',
+    tr:'M4,33 C3,41 4,48 6,52 C8,55 10,54 11,49 C12,44 11,38 9,33Z M11,33 C10,41 11,50 14,55 C17,50 18,41 17,33Z M19,33 C17,38 16,44 17,49 C18,54 20,55 22,52 C24,48 25,41 24,33Z'
+  },
+  u_mol2: {
+    tc:'M3,25 C3,13 5,6 8,4 C11,2 14,4 14,4 C14,4 17,2 20,4 C23,6 25,13 25,25 C24,30 18,32 14,32 C10,32 4,30 3,25Z',
+    tr:'M5,32 C4,40 5,47 7,51 C9,54 11,53 12,48 C12,43 11,37 9,32Z M11,32 C10,39 11,49 14,54 C17,49 18,39 17,32Z M18,32 C16,37 15,43 16,48 C17,53 19,54 21,51 C23,47 24,40 22,32Z'
+  },
+  u_mol3: {
+    tc:'M4,24 C4,13 6,6 9,4 C12,2 14,4 14,4 C14,4 16,2 19,4 C22,6 24,13 24,24 C23,29 17,31 14,31 C11,31 5,29 4,24Z',
+    tr:'M8,31 C7,40 8,48 11,52 C13,55 15,55 17,52 C20,48 21,40 20,31Z'
+  },
+  l_central: {
+    tc:'M8,27 C8,17 9,9 11,6 L17,6 C19,9 20,17 20,27 C19,31 16,33 14,33 C12,33 9,31 8,27Z',
+    tr:'M10,33 C9,43 10,52 14,57 C18,52 19,43 18,33Z'
+  },
+  l_lateral: {
+    tc:'M7,27 C7,17 8,9 10,6 L18,6 C20,9 21,17 21,27 C20,31 17,33 14,33 C11,33 8,31 7,27Z',
+    tr:'M10,33 C9,43 10,52 14,57 C18,52 19,43 18,33Z'
+  },
+  l_pm1: {
+    tc:'M5,25 C5,14 6,7 9,5 C11,3 13,5 14,6 C15,5 17,4 19,5 C22,7 23,14 23,25 C22,29 17,31 14,31 C11,31 6,29 5,25Z',
+    tr:'M10,31 C9,41 9,51 14,56 C19,51 19,41 18,31Z'
+  },
+  l_pm2: {
+    tc:'M5,25 C5,14 7,7 9,5 C11,3 13,5 14,6 C15,5 17,3 19,5 C21,7 23,14 23,25 C22,29 17,31 14,31 C11,31 6,29 5,25Z',
+    tr:'M10,31 C9,41 9,51 14,56 C19,51 19,41 18,31Z'
+  },
+  l_mol1: {
+    tc:'M2,26 C2,14 5,6 9,4 C12,2 14,4 14,4 C14,4 16,2 19,4 C23,6 26,14 26,26 C25,31 19,33 14,33 C9,33 3,31 2,26Z',
+    tr:'M4,33 C3,42 4,50 7,54 C9,57 12,56 13,50 C13,43 11,37 9,33Z M19,33 C17,37 15,43 15,50 C16,56 19,57 21,54 C24,50 25,42 24,33Z'
+  },
+  l_mol2: {
+    tc:'M3,25 C3,13 5,6 9,4 C12,2 14,4 14,4 C14,4 16,2 19,4 C23,6 25,13 25,25 C24,30 18,32 14,32 C10,32 4,30 3,25Z',
+    tr:'M5,32 C4,41 5,49 8,53 C10,56 12,55 13,49 C13,43 12,37 9,32Z M19,32 C17,37 15,43 15,49 C16,55 18,56 20,53 C23,49 24,41 22,32Z'
+  },
+  l_mol3: {
+    tc:'M4,24 C4,13 6,6 9,4 C12,2 14,4 14,4 C14,4 16,2 19,4 C22,6 24,13 24,24 C23,29 17,31 14,31 C11,31 5,29 4,24Z',
+    tr:'M8,31 C7,40 8,48 11,52 C13,55 15,55 17,52 C20,48 21,40 20,31Z'
+  }
+};
+
+function getToothPaths(num) {
+  const p = num % 10, q = Math.floor(num / 10);
+  const up = q === 1 || q === 2;
+  if (p === 8) return up ? TS.u_mol3 : TS.l_mol3;
+  if (p === 7) return up ? TS.u_mol2 : TS.l_mol2;
+  if (p === 6) return up ? TS.u_mol1 : TS.l_mol1;
+  if (p === 5) return up ? TS.u_pm2  : TS.l_pm2;
+  if (p === 4) return up ? TS.u_pm1  : TS.l_pm1;
+  if (p === 3) return TS.canine;
+  if (p === 2) return up ? TS.u_lateral : TS.l_lateral;
+  return up ? TS.u_central : TS.l_central;
+}
+
+// Demo diagnoses for tooltip
+const DIAG = {
+  11:'11(i) discoloration — tetracycline staining',
+  12:'12(i) discoloration — tetracycline staining',
+  13:'13 — no pathology',
+  14:'14(o) composite restoration',
+  21:'21(i) discoloration — tetracycline staining',
+  22:'22(i) discoloration — tetracycline staining',
+  23:'23 — no pathology',
+  24:'24(o) composite restoration',
+};
+
+function renderTooth(num) {
+  const d = toothData[num] || {};
+  const paths = getToothPaths(num);
+  const dot = d.note ? `<span class="tooth-dot"></span>` : '';
+  return `<div class="tooth ${d.marked ? 'marked' : ''}"
+    onclick="openToothModal(${num})"
+    onmouseenter="showTip(event,${num})"
+    onmouseleave="hideTip()">
+    ${dot}
+    <svg class="tooth-svg" viewBox="0 0 28 58" width="22" height="46" xmlns="http://www.w3.org/2000/svg">
+      <path class="tr" d="${paths.tr}"/>
+      <path class="tc" d="${paths.tc}"/>
+    </svg>
+    <div class="tooth-num">${num}</div>
+  </div>`;
+}
+
+function buildChart() {
+  const upper = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
+  const lower = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+  document.getElementById('upper-row').innerHTML = upper.map(n => renderTooth(n)).join('');
+  document.getElementById('lower-row').innerHTML = lower.map(n => renderTooth(n)).join('');
+}
+
+// ===== STAT CARD TOOLTIP =====
+const statPatients = {
+  charting:  ['สุธีรา จิตรดี', 'ปิยะ อนันต์', 'มนต์ชัย วงษ์ดี'],
+  treatment: ['พิมพ์ชนก วัฒนา', 'ณัฐวุฒิ สมบัติ', 'กนกพร สุขใจ', 'รัตนา พงษ์ไพร'],
+  lab:       ['ธนพัฒน์ ศรีอ่อน', 'อัจฉรา ทวีสุข'],
+  done:      ['วรรณิดา ทองดี', 'ชาญณรงค์ บุญมา', 'ศิริพร เจริญ'],
+};
+let statTipEl = null;
+function showStatTip(card, stage) {
+  hideStatTip();
+  const names = statPatients[stage] || [];
+  if (!names.length) return;
+  const tip = document.createElement('div');
+  tip.id = 'stat-tip';
+  tip.style.cssText = 'position:fixed;background:#1e293b;color:#fff;font-size:12.5px;line-height:1.7;padding:10px 14px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:9999;pointer-events:none;min-width:160px;';
+  tip.innerHTML = names.map(n => `<div>• ${n}</div>`).join('');
+  document.body.appendChild(tip);
+  statTipEl = tip;
+  const r = card.getBoundingClientRect();
+  tip.style.left = r.left + 'px';
+  tip.style.top  = (r.bottom + 8) + 'px';
+}
+function hideStatTip() {
+  if (statTipEl) { statTipEl.remove(); statTipEl = null; }
+}
+
+// ===== TOOTH TOOLTIP =====
+function showTip(e, num) {
+  const d = toothData[num] || {};
+  const text = d.note ? `${num} — ${d.note}` : DIAG[num];
+  if (!text) return;
+  const tip = document.getElementById('ttip');
+  tip.textContent = text;
+  tip.classList.add('on');
+  placeTip(e);
+}
+function placeTip(e) {
+  const tip = document.getElementById('ttip');
+  tip.style.left = (e.clientX + 14) + 'px';
+  tip.style.top  = (e.clientY - 36) + 'px';
+}
+function hideTip() { document.getElementById('ttip').classList.remove('on'); }
+document.addEventListener('mousemove', e => {
+  if (document.getElementById('ttip').classList.contains('on')) placeTip(e);
+});
+
+function openToothModal(num) {
+  activeToothNum = num;
+  const d = toothData[num] || {};
+  document.getElementById('toothModalNum').textContent = num;
+  document.getElementById('toothModalDisplay').textContent = num;
+  document.getElementById('toothModalName').textContent = toothNames[num] || '';
+  document.getElementById('toothNoteInput').value = d.note || '';
+  const btn = document.getElementById('toothMarkBtn');
+  btn.textContent = d.marked ? 'Unmark ซี่นี้' : 'Mark ซี่นี้';
+  btn.style.background = d.marked ? 'var(--red)' : 'var(--blue)';
+  document.getElementById('toothModal').classList.add('open');
+}
+
+function toggleToothMark() {
+  if (!activeToothNum) return;
+  if (!toothData[activeToothNum]) toothData[activeToothNum] = {};
+  toothData[activeToothNum].marked = !toothData[activeToothNum].marked;
+  const btn = document.getElementById('toothMarkBtn');
+  const isMarked = toothData[activeToothNum].marked;
+  btn.textContent = isMarked ? 'Unmark ซี่นี้' : 'Mark ซี่นี้';
+  btn.style.background = isMarked ? 'var(--red)' : 'var(--blue)';
+  buildChart();
+}
+
+function saveToothNote() {
+  if (!activeToothNum) return;
+  if (!toothData[activeToothNum]) toothData[activeToothNum] = {};
+  toothData[activeToothNum].note = document.getElementById('toothNoteInput').value;
+  closeModal('toothModal');
+  buildChart();
+}
+
+// ===== STATUS =====
+function updateStatus(sel) {
+  const colors = { charting:'var(--gray-600)', treatment:'var(--blue)', lab:'var(--yellow)', done:'var(--green)' };
+  sel.style.color = colors[sel.value] || 'inherit';
+}
+
+// ===== TREATMENT TYPE =====
+const txColors = {
+  veneer:  { color:'#CB70A4', bg:'#FDF0F7', border:'#E9AECF' },
+  filling: { color:'#BECB70', bg:'#F6F9E8', border:'#D9E6A3' },
+  crown:   { color:'#EA580C', bg:'#FFF7ED', border:'#FED7AA' },
+  inlay:   { color:'#0891B2', bg:'#ECFEFF', border:'#A5F3FC' },
+  onlay:   { color:'#A21CAF', bg:'#FDF4FF', border:'#F0ABFC' },
+  overlay: { color:'#4F46E5', bg:'#EEF2FF', border:'#C7D2FE' },
+  fmr:     { color:'#FF5757', bg:'#FFF0F0', border:'#FFBCBC' },
+};
+function updateTxType(sel) {
+  const c = txColors[sel.value] || txColors.veneer;
+  sel.style.color = c.color;
+  sel.style.background = c.bg;
+  sel.style.borderColor = c.border;
+}
+
+// ===== EXPORT PDF =====
+function toggleAllExport(cb) {
+  document.querySelectorAll('.exp-cb').forEach(c => c.checked = cb.checked);
+}
+function syncExportAll() {
+  const cbs = document.querySelectorAll('.exp-cb');
+  document.getElementById('exp-all').checked = [...cbs].every(c => c.checked);
+}
+
+// ===== INIT =====
+buildChart();
+const s = document.getElementById('caseStatus');
+if (s) updateStatus(s);
+const t = document.getElementById('txType');
+if (t) updateTxType(t);
+</script>
+<!-- EXPORT PDF MODAL -->
+<div class="modal-backdrop" id="exportModal">
+  <div class="modal" style="width:400px">
+    <div class="modal-header">
+      <div class="modal-title">📤 Export PDF</div>
+      <button class="modal-close" onclick="closeModal('exportModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--gray-500);margin-bottom:16px">เลือกส่วนที่ต้องการ export</div>
+
+      <!-- Select All -->
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--blue-light);border-radius:8px;cursor:pointer;margin-bottom:10px;border:1.5px solid var(--blue-mid)">
+        <input type="checkbox" id="exp-all" onchange="toggleAllExport(this)" style="width:16px;height:16px;accent-color:var(--blue);cursor:pointer" checked>
+        <div>
+          <div style="font-size:13.5px;font-weight:700;color:var(--blue)">ทั้งหมด</div>
+          <div style="font-size:11.5px;color:var(--blue);opacity:.7">เลือกทุกส่วน</div>
+        </div>
+      </label>
+
+      <div style="display:flex;flex-direction:column;gap:6px" id="export-options">
+        <label class="exp-row">
+          <input type="checkbox" class="exp-cb" onchange="syncExportAll()" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer" checked>
+          <div class="exp-label">
+            <div class="exp-name">ข้อมูลทั่วไป</div>
+            <div class="exp-sub">ชื่อ, ติดต่อ, ประวัติแพ้ยา</div>
+          </div>
+        </label>
+        <label class="exp-row">
+          <input type="checkbox" class="exp-cb" onchange="syncExportAll()" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer" checked>
+          <div class="exp-label">
+            <div class="exp-name">ข้อมูลคลินิก</div>
+            <div class="exp-sub">CC, Dental history, X-ray, Tooth chart, Treatment plan</div>
+          </div>
+        </label>
+        <label class="exp-row">
+          <input type="checkbox" class="exp-cb" onchange="syncExportAll()" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer" checked>
+          <div class="exp-label">
+            <div class="exp-name">Treatment Record</div>
+            <div class="exp-sub">บันทึก visit ทั้งหมด</div>
+          </div>
+        </label>
+        <label class="exp-row">
+          <input type="checkbox" class="exp-cb" onchange="syncExportAll()" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer" checked>
+          <div class="exp-label">
+            <div class="exp-name">Material</div>
+            <div class="exp-sub">Treatment, Material, Stump shade, Final shade</div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('exportModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="closeModal('exportModal')">📄 Export</button>
+    </div>
+  </div>
+</div>
+
+<div id="ttip"></div>
+</body>
+</html>
