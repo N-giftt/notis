@@ -380,14 +380,16 @@
     }
     .xray-item {
       background: #1a1a2e !important;
+      display: block !important;
       overflow: hidden !important;
       height: 110px !important;
+      aspect-ratio: unset !important;
       border-radius: 6px !important;
       position: relative !important;
     }
     .xray-item img {
       width: 100% !important;
-      height: 100% !important;
+      height: 110px !important;
       object-fit: contain !important;
       display: block !important;
     }
@@ -1072,7 +1074,7 @@
 <div class="modal-backdrop" id="visitModal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">➕ เพิ่ม Visit</div>
+      <div class="modal-title" id="visitModalTitle">➕ เพิ่ม Visit</div>
       <button class="modal-close" onclick="closeModal('visitModal')">✕</button>
     </div>
     <div class="modal-body">
@@ -1087,7 +1089,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('visitModal')">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="createVisit()">บันทึก Visit</button>
+      <button class="btn btn-primary" id="visitModalSaveBtn" onclick="saveVisit()">บันทึก Visit</button>
     </div>
   </div>
 </div>
@@ -1286,10 +1288,14 @@ async function loadVisits(pid) {
   const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   const fmt = s => { if (!s) return '—'; const d = new Date(s); return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`; };
   container.innerHTML = data.map(v => `
-    <div class="visit-card">
+    <div class="visit-card" id="vc-${v.id}">
       <div class="visit-header">
         <span class="visit-badge">Visit ${v.visit_number||'?'}</span>
         <span class="visit-date">${fmt(v.date)}</span>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <button onclick="openEditVisitModal('${v.id}')" style="background:var(--gray-100);border:none;border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--gray-600);font-weight:600">✏️ แก้ไข</button>
+          <button onclick="deleteVisit('${v.id}')" style="background:#fff0f0;border:none;border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--red);font-weight:600">🗑</button>
+        </div>
       </div>
       <div class="visit-treatment">${v.treatment||''}</div>
       ${v.note ? `<div class="visit-note">${v.note}</div>` : ''}
@@ -1356,23 +1362,66 @@ async function createPatient() {
   openCase(newId);
 }
 
-// ─── CREATE VISIT ───
-async function createVisit() {
+// ─── CREATE / EDIT VISIT ───
+let currentEditVisitId = null;
+
+function openVisitModal() {
+  currentEditVisitId = null;
+  const modal = document.getElementById('visitModal');
+  modal.querySelectorAll('input,textarea').forEach(f => f.value = '');
+  // default date = today
+  modal.querySelectorAll('.form-input')[0].value = new Date().toISOString().slice(0,10);
+  document.getElementById('visitModalTitle').textContent = '➕ เพิ่ม Visit';
+  document.getElementById('visitModalSaveBtn').textContent = 'บันทึก Visit';
+  modal.classList.add('open');
+}
+
+async function openEditVisitModal(id) {
+  const { data: v } = await db.from('visits').select('*').eq('id', id).single();
+  if (!v) return;
+  currentEditVisitId = id;
+  const modal = document.getElementById('visitModal');
+  const inputs = modal.querySelectorAll('.form-input');
+  const textas = modal.querySelectorAll('.form-textarea');
+  inputs[0].value = v.date || '';
+  inputs[1].value = v.visit_number || '';
+  inputs[2].value = v.treatment || '';
+  textas[0].value = v.note || '';
+  inputs[3].value = v.next_visit_date || '';
+  inputs[4].value = v.next_visit_detail || '';
+  document.getElementById('visitModalTitle').textContent = '✏️ แก้ไข Visit';
+  document.getElementById('visitModalSaveBtn').textContent = 'บันทึกการแก้ไข';
+  modal.classList.add('open');
+}
+
+async function saveVisit() {
   if (!currentPatientId) return;
   const modal = document.getElementById('visitModal');
-  const inputs  = modal.querySelectorAll('.form-input');
-  const textas  = modal.querySelectorAll('.form-textarea');
-  const { error } = await db.from('visits').insert({
-    patient_id: currentPatientId,
+  const inputs = modal.querySelectorAll('.form-input');
+  const textas = modal.querySelectorAll('.form-textarea');
+  const payload = {
     date: inputs[0].value || null,
     visit_number: parseInt(inputs[1].value) || null,
     treatment: inputs[2].value.trim() || null,
     note: textas[0].value.trim() || null,
     next_visit_date: inputs[3].value || null,
     next_visit_detail: inputs[4].value.trim() || null,
-  });
-  if (!error) { modal.querySelectorAll('input,textarea').forEach(f=>f.value=''); closeModal('visitModal'); loadVisits(currentPatientId); }
+  };
+  let error;
+  if (currentEditVisitId) {
+    ({ error } = await db.from('visits').update(payload).eq('id', currentEditVisitId));
+  } else {
+    ({ error } = await db.from('visits').insert({ patient_id: currentPatientId, ...payload }));
+  }
+  if (!error) { closeModal('visitModal'); loadVisits(currentPatientId); }
   else alert('บันทึกไม่ได้: ' + error.message);
+}
+
+async function deleteVisit(id) {
+  if (!confirm('ลบ visit นี้?')) return;
+  const { error } = await db.from('visits').delete().eq('id', id);
+  if (!error) loadVisits(currentPatientId);
+  else alert('ลบไม่ได้: ' + error.message);
 }
 
 // ─── DELETE CASE ───
@@ -1868,7 +1917,7 @@ function switchTab(name, el) {
 
 // ===== MODALS =====
 function openAddModal() { document.getElementById('addModal').classList.add('open'); }
-function openVisitModal() { document.getElementById('visitModal').classList.add('open'); }
+// openVisitModal defined above
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 // Close on backdrop click
