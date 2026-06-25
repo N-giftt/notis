@@ -585,19 +585,19 @@
 
       <!-- STATS -->
       <div class="stats-row">
-        <div class="stat-card">
+        <div class="stat-card" id="stat-card-charting" onmouseenter="showStatTip(event,'charting')" onmouseleave="hideStatTip()">
           <div class="stat-label">Charting</div>
           <div class="stat-value" id="stat-charting" style="color:var(--gray-600)">—</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="stat-card-treatment" onmouseenter="showStatTip(event,'treatment')" onmouseleave="hideStatTip()">
           <div class="stat-label">Treatment</div>
           <div class="stat-value" id="stat-treatment" style="color:var(--blue)">—</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="stat-card-lab" onmouseenter="showStatTip(event,'lab')" onmouseleave="hideStatTip()">
           <div class="stat-label">Lab work</div>
           <div class="stat-value" id="stat-lab" style="color:var(--yellow)">—</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="stat-card-done" onmouseenter="showStatTip(event,'done')" onmouseleave="hideStatTip()">
           <div class="stat-label">Done</div>
           <div class="stat-value" id="stat-done" style="color:var(--green)">—</div>
         </div>
@@ -616,7 +616,10 @@
         <!-- RIGHT: stats -->
         <div style="display:flex;flex-direction:column;gap:20px">
           <div>
-            <div style="font-size:15px;font-weight:700;margin-bottom:14px">📋 Requirement</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+              <div style="font-size:15px;font-weight:700">📋 Requirement</div>
+              <button onclick="openGoalModal()" style="background:var(--gray-100);border:none;border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--gray-600);font-weight:600">🎯 ตั้ง Goal</button>
+            </div>
             <div id="requirement-list" style="background:white;border:1px solid var(--gray-200);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px">
               <div style="color:var(--gray-400);font-size:13px">กำลังโหลด...</div>
             </div>
@@ -690,7 +693,7 @@
       <div class="allergy-banner">
         <div class="allergy-icon">⚠️</div>
         <div class="allergy-text">
-          <strong>แพ้ยา:</strong>
+          <strong>แพ้ยา / แพ้อาหาร:</strong>
           <span id="allergyBannerText">Penicillin — ผื่นลมพิษ, บวม</span>
         </div>
       </div>
@@ -698,7 +701,7 @@
       <!-- CASE HEADER -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
         <div style="display:flex;align-items:center;gap:16px">
-          <div style="font-size:42px">👩</div>
+          <div id="hdrPhoto" style="width:52px;height:52px;border-radius:50%;background:var(--gray-200);border:2px solid var(--gray-200);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">👤</div>
           <div>
             <div style="font-size:22px;font-weight:800"><span id="hdrName">—</span> <span id="hdrNick" style="font-size:16px;font-weight:500;color:var(--gray-400)"></span></div>
             <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
@@ -783,7 +786,7 @@
               </div>
             </div>
             <div class="section-block">
-              <div class="section-title">⚠️ ประวัติแพ้ยา</div>
+              <div class="section-title">⚠️ ประวัติแพ้ยา / แพ้อาหาร</div>
               <textarea id="allergyField" class="inline-textarea" rows="2" style="background:var(--red-light);border-radius:8px;padding:10px 12px;font-size:13.5px;color:var(--red);font-weight:600;width:100%" data-table="patients" data-field="allergy" oninput="updateAllergyBanner(this.value)"></textarea>
             </div>
             <div class="section-block">
@@ -1076,6 +1079,24 @@
   </main>
 </div>
 
+<!-- STAT TOOLTIP -->
+<div id="stat-tip" style="display:none;position:fixed;z-index:9999;background:#1e293b;color:white;border-radius:10px;padding:10px 14px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.25);min-width:160px;max-width:240px;pointer-events:none"></div>
+
+<!-- GOAL MODAL -->
+<div class="modal-backdrop" id="goalModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🎯 ตั้ง Goal แต่ละ Procedure</div>
+      <button class="modal-close" onclick="closeModal('goalModal')">✕</button>
+    </div>
+    <div class="modal-body" id="goal-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('goalModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveGoals()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADD CASE MODAL -->
 <div class="modal-backdrop" id="addModal">
   <div class="modal">
@@ -1249,19 +1270,28 @@ async function openCase(id, tab) {
   document.getElementById('hdrAge').textContent  = p.age ? `อายุ ${p.age} ปี` : '—';
   document.getElementById('hdrCode').textContent = p.patient_code || '—';
 
-  // photo
+  // photo — patientPhotoBox (info tab) + hdrPhoto (header)
   const photoBox = document.getElementById('patientPhotoBox');
-  if (photoBox) {
-    if (p.photo_url) {
+  const hdrPhoto = document.getElementById('hdrPhoto');
+  if (p.photo_url) {
+    if (photoBox) {
       photoBox.innerHTML = '';
       photoBox.style.backgroundImage = `url(${p.photo_url})`;
       photoBox.style.backgroundSize = 'cover';
       photoBox.style.backgroundPosition = 'center';
       photoBox.style.fontSize = '0';
-    } else {
+    }
+    if (hdrPhoto) {
+      hdrPhoto.innerHTML = `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover">`;
+    }
+  } else {
+    if (photoBox) {
       photoBox.innerHTML = '👩';
       photoBox.style.backgroundImage = '';
       photoBox.style.fontSize = '';
+    }
+    if (hdrPhoto) {
+      hdrPhoto.innerHTML = '👤';
     }
   }
 
@@ -1499,15 +1529,21 @@ async function loadDashboard() {
 
   // Stats
   const counts = { charting:0, treatment:0, lab:0, done:0 };
+  const statPatients = { charting:[], treatment:[], lab:[], done:[] };
   const txCounts = {};
   patients.forEach(p => {
-    if (counts[p.status] !== undefined) counts[p.status]++;
+    if (counts[p.status] !== undefined) {
+      counts[p.status]++;
+      statPatients[p.status].push({ id: p.id, name: p.full_name || '—', nick: p.nickname || '' });
+    }
     if (p.tx_type) txCounts[p.tx_type] = (txCounts[p.tx_type]||0) + 1;
   });
   document.getElementById('stat-charting').textContent = counts.charting;
   document.getElementById('stat-treatment').textContent = counts.treatment;
   document.getElementById('stat-lab').textContent = counts.lab;
   document.getElementById('stat-done').textContent = counts.done;
+  // store for tooltip
+  window._statPatients = statPatients;
   document.getElementById('dash-subtitle').textContent = `ทั้งหมด ${patients.length} เคส`;
 
   // 2. Upcoming visits
@@ -1542,17 +1578,27 @@ async function loadDashboard() {
   const txOrder = ['veneer','crown','inlay','onlay','overlay','filling','fmr'];
   const txColors = {veneer:'var(--blue)',crown:'#EA580C',inlay:'#0891B2',onlay:'#A21CAF',overlay:'#4F46E5',filling:'var(--green)',fmr:'var(--red)'};
   const txLabels = {veneer:'Veneer',crown:'Crown',inlay:'Inlay',onlay:'Onlay',overlay:'Overlay',filling:'Filling',fmr:'FMR'};
-  const activeTx = txOrder.filter(t => txCounts[t]);
-  const maxCount = activeTx.length ? Math.max(...activeTx.map(t => txCounts[t])) : 1;
-  document.getElementById('requirement-list').innerHTML = activeTx.length
-    ? activeTx.map(t => `<div style="display:flex;align-items:center;gap:8px">
-        <span class="tx-badge tx-${t}" style="min-width:58px;text-align:center;font-size:11px">${txLabels[t]}</span>
-        <div style="flex:1;background:var(--gray-100);border-radius:99px;height:7px;overflow:hidden">
-          <div style="width:${Math.round(txCounts[t]/maxCount*100)}%;height:100%;background:${txColors[t]};border-radius:99px"></div>
-        </div>
-        <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);min-width:18px;text-align:right">${txCounts[t]}</span>
-      </div>`).join('')
-    : '<div style="color:var(--gray-400);font-size:13px">ยังไม่มีข้อมูล</div>';
+  const goals = JSON.parse(localStorage.getItem('notis_goals') || '{}');
+  // show all procedures that have either a count or a goal
+  const allTx = txOrder.filter(t => txCounts[t] || goals[t]);
+  document.getElementById('requirement-list').innerHTML = allTx.length
+    ? allTx.map(t => {
+        const actual = txCounts[t] || 0;
+        const goal = goals[t] || 0;
+        const pct = goal ? Math.min(Math.round(actual / goal * 100), 100) : 0;
+        const barColor = goal && actual >= goal ? 'var(--green)' : txColors[t];
+        const barWidth = goal ? pct : 0;
+        const label = goal ? `${actual}/${goal}` : `${actual}`;
+        const done = goal && actual >= goal;
+        return `<div style="display:flex;align-items:center;gap:8px">
+          <span class="tx-badge tx-${t}" style="min-width:58px;text-align:center;font-size:11px">${txLabels[t]}</span>
+          <div style="flex:1;background:var(--gray-100);border-radius:99px;height:7px;overflow:hidden">
+            <div style="width:${goal ? barWidth : Math.min(actual*10,100)}%;height:100%;background:${barColor};border-radius:99px;transition:width .4s"></div>
+          </div>
+          <span style="font-size:12px;font-weight:700;color:${done?'var(--green)':'var(--gray-700)'};min-width:36px;text-align:right">${label}${done?' ✓':''}</span>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--gray-400);font-size:13px">ยังไม่มีข้อมูล — กด 🎯 ตั้ง Goal เพื่อเริ่ม</div>';
 
   // 4. No appointment (non-done patients not in upcoming list)
   const upIds = new Set((upcoming||[]).map(v => v.patients.id));
@@ -1683,6 +1729,8 @@ async function handlePhotoUpload(input) {
     box.style.backgroundSize = 'cover';
     box.style.backgroundPosition = 'center';
     box.style.fontSize = '0';
+    const hdrPhoto = document.getElementById('hdrPhoto');
+    if (hdrPhoto) hdrPhoto.innerHTML = `<img src="${reader.result}" style="width:100%;height:100%;object-fit:cover">`;
   };
   reader.readAsDataURL(file);
   if (!currentPatientId) return;
@@ -1940,6 +1988,7 @@ function showView(id) {
   currentView = id;
   closeSidebar();
   if (id === 'dashboard') loadDashboard();
+  if (id === 'cases') loadPatients();
   // Save last view (not case-detail — that's saved by openCase)
   if (id !== 'case-detail') {
     localStorage.setItem('notis_view', id);
@@ -1953,6 +2002,64 @@ function goBack() {
 }
 
 // ===== TABS =====
+// ===== STAT TOOLTIP =====
+function showStatTip(e, status) {
+  const tip = document.getElementById('stat-tip');
+  const list = (window._statPatients || {})[status] || [];
+  if (!list.length) return;
+  const labels = { charting:'Charting', treatment:'Treatment', lab:'Lab work', done:'Done' };
+  tip.innerHTML = `<div style="font-weight:700;margin-bottom:7px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.7">${labels[status]} (${list.length})</div>`
+    + list.map(p => `<div style="padding:3px 0;cursor:pointer;display:flex;align-items:center;gap:6px" onclick="openCase('${p.id}')">
+        <span style="width:5px;height:5px;border-radius:50%;background:white;opacity:.5;flex-shrink:0;display:inline-block"></span>
+        <span>${p.name}${p.nick ? ` <span style="opacity:.6">(${p.nick})</span>` : ''}</span>
+      </div>`).join('');
+  tip.style.display = 'block';
+  positionTip(e, tip);
+}
+function hideStatTip() {
+  document.getElementById('stat-tip').style.display = 'none';
+}
+function positionTip(e, tip) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const tipH = tip.offsetHeight || 120;
+  let top = rect.bottom + 8;
+  if (top + tipH > window.innerHeight - 16) top = rect.top - tipH - 8;
+  let left = rect.left;
+  if (left + 240 > window.innerWidth - 16) left = window.innerWidth - 256;
+  tip.style.top = top + 'px';
+  tip.style.left = left + 'px';
+}
+
+// ===== GOAL MODAL =====
+function openGoalModal() {
+  const txOrder = ['veneer','crown','inlay','onlay','overlay','filling','fmr'];
+  const txLabels = {veneer:'Veneer',crown:'Crown',inlay:'Inlay',onlay:'Onlay',overlay:'Overlay',filling:'Filling',fmr:'FMR'};
+  const goals = JSON.parse(localStorage.getItem('notis_goals') || '{}');
+  document.getElementById('goal-modal-body').innerHTML = `
+    <p style="font-size:13px;color:var(--gray-500);margin-bottom:16px">ตั้งจำนวนที่ต้องทำให้ครบสำหรับ MSc Program (ใส่ 0 = ไม่นับ)</p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${txOrder.map(t => `
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="tx-badge tx-${t}" style="min-width:64px;text-align:center">${txLabels[t]}</span>
+          <input type="number" min="0" max="999" data-goal="${t}" value="${goals[t]||0}"
+            class="form-input" style="width:80px;text-align:center">
+          <span style="font-size:12px;color:var(--gray-400)">ราย</span>
+        </div>`).join('')}
+    </div>`;
+  document.getElementById('goalModal').classList.add('open');
+}
+
+function saveGoals() {
+  const goals = {};
+  document.querySelectorAll('#goal-modal-body input[data-goal]').forEach(el => {
+    const v = parseInt(el.value);
+    if (v > 0) goals[el.dataset.goal] = v;
+  });
+  localStorage.setItem('notis_goals', JSON.stringify(goals));
+  closeModal('goalModal');
+  loadDashboard();
+}
+
 function printAll() {
   document.body.classList.add('print-all');
   window.print();
