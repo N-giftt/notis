@@ -712,16 +712,15 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <select class="status-select" id="txType" onchange="updateTxType(this)">
-            <option value="">— ประเภท —</option>
-            <option value="veneer">Veneer</option>
-            <option value="filling">Filling</option>
-            <option value="crown">Crown</option>
-            <option value="inlay">Inlay</option>
-            <option value="onlay">Onlay</option>
-            <option value="overlay">Overlay</option>
-            <option value="fmr">FMR</option>
-          </select>
+          <div id="txTypeWrap" style="position:relative">
+            <div id="txTypeTrigger" onclick="toggleTxPicker(event)"
+              style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;cursor:pointer;background:white;border:1.5px solid var(--gray-200);border-radius:8px;padding:5px 10px;font-size:12px;min-width:110px;max-width:280px">
+              <span id="txTypePlaceholder" style="color:var(--gray-400)">— ประเภท —</span>
+            </div>
+            <div id="txTypePicker" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:white;border:1.5px solid var(--gray-200);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:8px;z-index:200;min-width:150px">
+              <div style="display:flex;flex-direction:column;gap:2px" id="txTypeCheckboxes"></div>
+            </div>
+          </div>
           <select class="status-select" onchange="updateStatus(this)" id="caseStatus">
             <option value="charting">📋 Charting</option>
             <option value="treatment" selected>🔵 Treatment</option>
@@ -1238,7 +1237,10 @@ async function loadPatients() {
   });
 
   body.innerHTML = data.map(p => {
-    const txBadge = p.tx_type ? `<span class="tx-badge tx-${p.tx_type}">${p.tx_type[0].toUpperCase()+p.tx_type.slice(1)}</span>` : '<span style="color:var(--gray-400)">—</span>';
+    const txTypes = p.tx_type ? p.tx_type.split(',').map(s=>s.trim()).filter(Boolean) : [];
+    const txBadge = txTypes.length
+      ? txTypes.map(t => { const lbl = TX_OPTIONS?.find(o=>o.value===t)?.label || (t[0].toUpperCase()+t.slice(1)); return `<span class="tx-badge tx-${t}">${lbl}</span>`; }).join(' ')
+      : '<span style="color:var(--gray-400)">—</span>';
     const nv = latestNV[p.id];
     const nvStr = nv ? fmtDate(nv) : '—';
     const nvColor = nv && new Date(nv) < new Date() ? 'var(--red)' : 'var(--gray-500)';
@@ -1330,7 +1332,7 @@ async function openCase(id, tab) {
   const statusSel = document.getElementById('caseStatus');
   const txSel = document.getElementById('txType');
   if (statusSel) { statusSel.value = p.status || 'charting'; updateStatus(statusSel); }
-  if (txSel) { txSel.value = p.tx_type || ''; updateTxType(txSel); }
+  renderTxPicker(p.tx_type || '');
 
   // load related
   loadTreatmentPlan(id);
@@ -1553,7 +1555,11 @@ async function loadDashboard() {
       counts[p.status]++;
       statPatients[p.status].push({ id: p.id, name: p.full_name || '—', nick: p.nickname || '' });
     }
-    if (p.tx_type) txCounts[p.tx_type] = (txCounts[p.tx_type]||0) + 1;
+    if (p.tx_type) {
+      p.tx_type.split(',').map(s=>s.trim()).filter(Boolean).forEach(t => {
+        txCounts[t] = (txCounts[t]||0) + 1;
+      });
+    }
   });
   document.getElementById('stat-charting').textContent = counts.charting;
   document.getElementById('stat-treatment').textContent = counts.treatment;
@@ -1624,7 +1630,7 @@ async function loadDashboard() {
     ? noAppt.map(p => `<div style="background:white;border:1px solid #FED7AA;border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openCase('${p.id}','record')">
         <div>
           <div style="font-weight:600;font-size:13.5px">${p.full_name||'—'}</div>
-          <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">${p.status||''} · ${p.tx_type||'—'}</div>
+          <div style="font-size:11.5px;color:var(--gray-500);margin-top:2px">${p.status||''} · ${p.tx_type ? p.tx_type.split(',').map(s=>s[0].toUpperCase()+s.slice(1)).join(', ') : '—'}</div>
         </div>
         <span style="font-size:10.5px;font-weight:600;color:#EA580C;background:#FFF7ED;padding:2px 7px;border-radius:20px;white-space:nowrap">ไม่มีนัด</span>
       </div>`).join('')
@@ -2301,15 +2307,72 @@ const txColors = {
   overlay: { color:'#4F46E5', bg:'#EEF2FF', border:'#C7D2FE' },
   fmr:     { color:'#FF5757', bg:'#FFF0F0', border:'#FFBCBC' },
 };
-function updateTxType(sel) {
-  const c = txColors[sel.value] || { color:'var(--gray-500)', bg:'white', border:'var(--gray-200)' };
-  sel.style.color = c.color;
-  sel.style.background = c.bg;
-  sel.style.borderColor = c.border;
-  if (currentPatientId) {
-    db.from('patients').update({ tx_type: sel.value || null }).eq('id', currentPatientId);
+// ===== TX TYPE MULTI-PICKER =====
+const TX_OPTIONS = [
+  { value:'veneer',  label:'Veneer'  },
+  { value:'filling', label:'Filling' },
+  { value:'crown',   label:'Crown'   },
+  { value:'inlay',   label:'Inlay'   },
+  { value:'onlay',   label:'Onlay'   },
+  { value:'overlay', label:'Overlay' },
+  { value:'fmr',     label:'FMR'     },
+];
+
+function renderTxPicker(txStr) {
+  const selected = txStr ? txStr.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  const box = document.getElementById('txTypeCheckboxes');
+  if (box) {
+    box.innerHTML = TX_OPTIONS.map(o => `
+      <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:13px;user-select:none" onmouseenter="this.style.background='var(--gray-50)'" onmouseleave="this.style.background=''">
+        <input type="checkbox" value="${o.value}" ${selected.includes(o.value)?'checked':''} onchange="onTxChange()" style="accent-color:var(--blue);width:14px;height:14px;cursor:pointer">
+        <span class="tx-badge tx-${o.value}" style="pointer-events:none">${o.label}</span>
+      </label>`).join('');
+  }
+  refreshTxTrigger(selected);
+}
+
+function refreshTxTrigger(selected) {
+  const trigger = document.getElementById('txTypeTrigger');
+  const ph = document.getElementById('txTypePlaceholder');
+  if (!trigger) return;
+  // remove old badges (keep placeholder span)
+  trigger.querySelectorAll('.tx-badge').forEach(b => b.remove());
+  if (!selected || !selected.length) {
+    ph.style.display = '';
+  } else {
+    ph.style.display = 'none';
+    selected.forEach(v => {
+      const label = TX_OPTIONS.find(o=>o.value===v)?.label || v;
+      const span = document.createElement('span');
+      span.className = `tx-badge tx-${v}`;
+      span.textContent = label;
+      trigger.appendChild(span);
+    });
   }
 }
+
+async function onTxChange() {
+  const checked = [...document.querySelectorAll('#txTypeCheckboxes input:checked')].map(i=>i.value);
+  refreshTxTrigger(checked);
+  if (currentPatientId) {
+    await db.from('patients').update({ tx_type: checked.join(',') || null }).eq('id', currentPatientId);
+  }
+}
+
+function toggleTxPicker(e) {
+  e.stopPropagation();
+  const picker = document.getElementById('txTypePicker');
+  const isOpen = picker.style.display !== 'none';
+  picker.style.display = isOpen ? 'none' : 'block';
+}
+
+document.addEventListener('click', () => {
+  const picker = document.getElementById('txTypePicker');
+  if (picker) picker.style.display = 'none';
+});
+
+// legacy compat (init call below)
+function updateTxType() {}
 
 // ===== EXPORT PDF =====
 function toggleAllExport(cb) {
