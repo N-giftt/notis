@@ -2324,22 +2324,26 @@ function renderTxPicker(txStr) {
   const box = document.getElementById('txTypeCheckboxes');
   if (!box) return;
   box.innerHTML = TX_OPTIONS.map(o => `
-    <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;white-space:nowrap">
-      <input type="checkbox" value="${o.value}" ${_txSet.has(o.value) ? 'checked' : ''}
-        style="width:14px;height:14px;accent-color:var(--blue);cursor:pointer;flex-shrink:0"
-        onchange="onTxCheck('${o.value}', this.checked)">
+    <div onclick="toggleTxItem('${o.value}', event)"
+      style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;user-select:none"
+      onmouseenter="this.style.background='var(--gray-50)'" onmouseleave="this.style.background=''">
+      <input type="checkbox" id="txcb-${o.value}" ${_txSet.has(o.value) ? 'checked' : ''}
+        style="width:14px;height:14px;accent-color:var(--blue);pointer-events:none;flex-shrink:0">
       <span class="tx-badge tx-${o.value}" style="pointer-events:none">${o.label}</span>
-    </label>`).join('');
+    </div>`).join('');
   refreshTxBtn();
 }
 
-function onTxCheck(val, checked) {
-  if (checked) _txSet.add(val); else _txSet.delete(val);
+function toggleTxItem(val, e) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (_txSet.has(val)) { _txSet.delete(val); } else { _txSet.add(val); }
+  const cb = document.getElementById('txcb-' + val);
+  if (cb) cb.checked = _txSet.has(val);
   refreshTxBtn();
   const toSave = _txSet.size ? [..._txSet].join(',') : null;
   if (currentPatientId) {
-    db.from('patients').update({ tx_type: toSave }).eq('id', currentPatientId)
-      .then(({ error }) => { if (!error) showToast('✓ ' + ([..._txSet].join(', ') || '—')); });
+    db.from('patients').update({ tx_type: toSave }).eq('id', currentPatientId);
   }
 }
 
