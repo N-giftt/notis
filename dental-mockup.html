@@ -712,7 +712,14 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <div id="txTypeWrap" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center" id="txTypeChips"></div>
+          <div id="txTypeWrap" style="position:relative">
+            <button id="txTypeBtn" onclick="toggleTxPicker(event)" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;background:white;border:1.5px solid var(--gray-200);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;max-width:260px;text-align:left">
+              <span id="txTypePlaceholder" style="color:var(--gray-400)">— ประเภท —</span>
+            </button>
+            <div id="txTypePicker" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:white;border:1.5px solid var(--gray-200);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:6px;z-index:300;min-width:150px">
+              <div id="txTypeCheckboxes"></div>
+            </div>
+          </div>
           <select class="status-select" onchange="updateStatus(this)" id="caseStatus">
             <option value="charting">📋 Charting</option>
             <option value="treatment" selected>🔵 Treatment</option>
@@ -2311,24 +2318,40 @@ const TX_OPTIONS = [
 ];
 
 function renderTxPicker(txStr) {
-  const selected = txStr ? txStr.split(',').map(s=>s.trim()).filter(Boolean) : [];
-  const wrap = document.getElementById('txTypeWrap');
-  if (!wrap) return;
-  wrap.innerHTML = TX_OPTIONS.map(o => {
-    const on = selected.includes(o.value);
-    return `<span onclick="toggleTxChip(this)" data-tx="${o.value}" data-on="${on?'1':'0'}"
-      class="tx-badge tx-${o.value}"
-      style="cursor:pointer;user-select:none;transition:opacity .15s;${on ? '' : 'opacity:0.25;filter:grayscale(70%)'}">${o.label}</span>`;
-  }).join('');
+  const selected = txStr ? txStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const box = document.getElementById('txTypeCheckboxes');
+  if (!box) return;
+  box.innerHTML = TX_OPTIONS.map(o => `
+    <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;white-space:nowrap">
+      <input type="checkbox" value="${o.value}" ${selected.includes(o.value) ? 'checked' : ''}
+        onchange="saveTxTypes()" style="width:14px;height:14px;accent-color:var(--blue);cursor:pointer;flex-shrink:0">
+      <span class="tx-badge tx-${o.value}" style="pointer-events:none">${o.label}</span>
+    </label>`).join('');
+  updateTxBtn(selected);
 }
 
-function toggleTxChip(el) {
-  const on = el.dataset.on === '1';
-  el.dataset.on = on ? '0' : '1';
-  el.style.opacity = on ? '0.25' : '';
-  el.style.filter  = on ? 'grayscale(70%)' : '';
+function updateTxBtn(selected) {
+  const btn = document.getElementById('txTypeBtn');
+  const ph  = document.getElementById('txTypePlaceholder');
+  if (!btn) return;
+  btn.querySelectorAll('.tx-badge').forEach(b => b.remove());
+  if (!selected.length) {
+    ph.style.display = '';
+  } else {
+    ph.style.display = 'none';
+    selected.forEach(v => {
+      const lbl = TX_OPTIONS.find(o => o.value === v)?.label || v;
+      const s = document.createElement('span');
+      s.className = `tx-badge tx-${v}`;
+      s.textContent = lbl;
+      btn.appendChild(s);
+    });
+  }
+}
 
-  const selected = [...document.querySelectorAll('#txTypeWrap [data-tx][data-on="1"]')].map(c => c.dataset.tx);
+function saveTxTypes() {
+  const selected = [...document.querySelectorAll('#txTypeCheckboxes input:checked')].map(i => i.value);
+  updateTxBtn(selected);
   const val = selected.length ? selected.join(',') : null;
   if (currentPatientId) {
     db.from('patients').update({ tx_type: val }).eq('id', currentPatientId)
@@ -2336,9 +2359,21 @@ function toggleTxChip(el) {
   }
 }
 
-// legacy compat
+function toggleTxPicker(e) {
+  e.stopPropagation();
+  const p = document.getElementById('txTypePicker');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('txTypeWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const p = document.getElementById('txTypePicker');
+    if (p) p.style.display = 'none';
+  }
+});
+
 function updateTxType() {}
-function toggleTxPicker() {}
 
 // ===== EXPORT PDF =====
 function toggleAllExport(cb) {
