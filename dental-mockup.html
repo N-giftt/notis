@@ -2342,9 +2342,12 @@ function toggleTxItem(val, e) {
   if (cb) cb.checked = _txSet.has(val);
   refreshTxBtn();
   const toSave = _txSet.size ? [..._txSet].join(',') : null;
-  if (currentPatientId) {
-    db.from('patients').update({ tx_type: toSave }).eq('id', currentPatientId);
-  }
+  if (!currentPatientId) { showToast('❌ ไม่มี patient ID'); return; }
+  db.from('patients').update({ tx_type: toSave }).eq('id', currentPatientId)
+    .then(({ error }) => {
+      if (error) showToast('❌ ' + error.message);
+      else showToast('✓ ' + (toSave || '—'));
+    });
 }
 
 function refreshTxBtn() {
