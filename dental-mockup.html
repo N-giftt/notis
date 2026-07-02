@@ -712,15 +712,7 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <div id="txTypeWrap" style="position:relative">
-            <div id="txTypeTrigger" onclick="toggleTxPicker(event)"
-              style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;cursor:pointer;background:white;border:1.5px solid var(--gray-200);border-radius:8px;padding:5px 10px;font-size:12px;min-width:110px;max-width:280px">
-              <span id="txTypePlaceholder" style="color:var(--gray-400)">— ประเภท —</span>
-            </div>
-            <div id="txTypePicker" onclick="event.stopPropagation()" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:white;border:1.5px solid var(--gray-200);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:8px;z-index:200;min-width:150px">
-              <div style="display:flex;flex-direction:column;gap:2px" id="txTypeCheckboxes"></div>
-            </div>
-          </div>
+          <div id="txTypeWrap" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center" id="txTypeChips"></div>
           <select class="status-select" onchange="updateStatus(this)" id="caseStatus">
             <option value="charting">📋 Charting</option>
             <option value="treatment" selected>🔵 Treatment</option>
@@ -1453,7 +1445,7 @@ async function createPatient() {
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   closeModal('addModal');
   loadPatients();
-  openCase(newId);
+  openCase(newId, 'info');
 }
 
 // ─── CREATE / EDIT VISIT ───
@@ -2320,68 +2312,33 @@ const TX_OPTIONS = [
 
 function renderTxPicker(txStr) {
   const selected = txStr ? txStr.split(',').map(s=>s.trim()).filter(Boolean) : [];
-  const box = document.getElementById('txTypeCheckboxes');
-  if (box) {
-    box.innerHTML = TX_OPTIONS.map(o => `
-      <label style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:13px;user-select:none" onmouseenter="this.style.background='var(--gray-50)'" onmouseleave="this.style.background=''">
-        <input type="checkbox" value="${o.value}" ${selected.includes(o.value)?'checked':''} onchange="onTxChange()" style="accent-color:var(--blue);width:14px;height:14px;cursor:pointer">
-        <span class="tx-badge tx-${o.value}" style="pointer-events:none">${o.label}</span>
-      </label>`).join('');
-  }
-  refreshTxTrigger(selected);
+  const wrap = document.getElementById('txTypeWrap');
+  if (!wrap) return;
+  wrap.innerHTML = TX_OPTIONS.map(o => {
+    const on = selected.includes(o.value);
+    return `<span onclick="toggleTxChip(this)" data-tx="${o.value}" data-on="${on?'1':'0'}"
+      class="tx-badge tx-${o.value}"
+      style="cursor:pointer;user-select:none;transition:opacity .15s;${on ? '' : 'opacity:0.25;filter:grayscale(70%)'}">${o.label}</span>`;
+  }).join('');
 }
 
-function refreshTxTrigger(selected) {
-  const trigger = document.getElementById('txTypeTrigger');
-  const ph = document.getElementById('txTypePlaceholder');
-  if (!trigger) return;
-  // remove old badges (keep placeholder span)
-  trigger.querySelectorAll('.tx-badge').forEach(b => b.remove());
-  if (!selected || !selected.length) {
-    ph.style.display = '';
-  } else {
-    ph.style.display = 'none';
-    selected.forEach(v => {
-      const label = TX_OPTIONS.find(o=>o.value===v)?.label || v;
-      const span = document.createElement('span');
-      span.className = `tx-badge tx-${v}`;
-      span.textContent = label;
-      trigger.appendChild(span);
-    });
-  }
-}
+function toggleTxChip(el) {
+  const on = el.dataset.on === '1';
+  el.dataset.on = on ? '0' : '1';
+  el.style.opacity = on ? '0.25' : '';
+  el.style.filter  = on ? 'grayscale(70%)' : '';
 
-function onTxChange() {
-  // read ALL checkboxes explicitly
-  const all = document.querySelectorAll('#txTypeCheckboxes input[type="checkbox"]');
-  const checked = [];
-  all.forEach(cb => { if (cb.checked) checked.push(cb.value); });
-  const val = checked.length ? checked.join(',') : null;
-  refreshTxTrigger(checked);
+  const selected = [...document.querySelectorAll('#txTypeWrap [data-tx][data-on="1"]')].map(c => c.dataset.tx);
+  const val = selected.length ? selected.join(',') : null;
   if (currentPatientId) {
-    db.from('patients')
-      .update({ tx_type: val })
-      .eq('id', currentPatientId)
-      .then(({ error }) => {
-        if (!error) showToast('บันทึก: ' + (val || '—'));
-      });
+    db.from('patients').update({ tx_type: val }).eq('id', currentPatientId)
+      .then(() => showToast('บันทึกแล้ว'));
   }
 }
 
-function toggleTxPicker(e) {
-  e.stopPropagation();
-  const picker = document.getElementById('txTypePicker');
-  const isOpen = picker.style.display !== 'none';
-  picker.style.display = isOpen ? 'none' : 'block';
-}
-
-document.addEventListener('click', () => {
-  const picker = document.getElementById('txTypePicker');
-  if (picker) picker.style.display = 'none';
-});
-
-// legacy compat (init call below)
+// legacy compat
 function updateTxType() {}
+function toggleTxPicker() {}
 
 // ===== EXPORT PDF =====
 function toggleAllExport(cb) {
